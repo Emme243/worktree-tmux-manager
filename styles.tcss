@@ -1,0 +1,146 @@
+/* ── Toast Notifications ── */
+
+ToastRack {
+    dock: top;
+    align: right top;
+    margin-bottom: 0;
+    margin-top: 1;
+}
+
+/* ── Worktree List Screen ── */
+
+#wt-layout {
+    padding: 1 2;
+}
+
+#wt-title {
+    text-style: bold;
+    color: $accent;
+    margin-bottom: 1;
+}
+
+#wt-table {
+    height: 1fr;
+    border: round $accent;
+}
+
+#output-log {
+    height: 8;
+    border: round $surface-lighten-2;
+    margin-top: 1;
+    display: none;
+}
+
+#action-bar {
+    height: auto;
+    margin-top: 1;
+    align: center middle;
+}
+
+#action-bar Button {
+    margin: 0 1;
+}
+
+/* ── Modal Dialogs ── */
+
+ModalScreen {
+    align: center middle;
+}
+
+#modal-dialog {
+    width: 70;
+    height: auto;
+    max-height: 80%;
+    padding: 1 2;
+    border: thick $success;
+    background: $surface;
+}
+
+.modal-title {
+    text-style: bold;
+    color: $success;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#modal-dialog.modal-destructive {
+    border: thick $error;
+}
+
+.modal-destructive .modal-title {
+    color: $error;
+}
+
+#modal-dialog.modal-rename {
+    border: thick $warning;
+}
+
+.modal-rename .modal-title {
+    color: $warning;
+}
+
+.modal-warning {
+    color: $error;
+    margin: 1 0;
+    text-style: bold;
+}
+
+#modal-dialog Label {
+    margin-top: 1;
+}
+
+#modal-dialog Input {
+    margin: 0 0 1 0;
+}
+
+#modal-dialog Checkbox {
+    margin: 0 0 0 0;
+}
+
+.modal-buttons {
+    height: auto;
+    margin-top: 1;
+    align: center middle;
+}
+
+.modal-buttons Button {
+    margin: 0 1;
+}
+
+/* ── Search Bar ── */
+
+#search-bar {
+    height: auto;
+    display: none;
+    margin-bottom: 1;
+}
+
+#search-bar Horizontal {
+    height: auto;
+}
+
+#search-icon {
+    width: 4;
+    content-align: center middle;
+    color: $accent;
+    text-style: bold;
+}
+
+#search-bar Input {
+    width: 1fr;
+}
+
+/* ── Help Overlay ── */
+
+#help-dialog {
+    width: 60;
+    height: auto;
+    max-height: 80%;
+    padding: 1 2;
+    border: thick $accent;
+    background: $surface;
+}
+
+#help-content {
+    margin: 1 0;
+}
