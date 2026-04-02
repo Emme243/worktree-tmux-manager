@@ -107,6 +107,19 @@ ModalScreen {
     margin: 0 1;
 }
 
+/* ── Autocomplete Dropdown ── */
+
+#modal-dialog AutoComplete AutoCompleteList {
+    max-height: 6;
+    background: $surface;
+    border: round $success;
+}
+
+#modal-dialog AutoComplete .autocomplete--highlight-match {
+    color: $success;
+    text-style: bold;
+}
+
 /* ── Search Bar ── */
 
 #search-bar {

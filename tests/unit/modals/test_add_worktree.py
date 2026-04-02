@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from textual.widgets import Button, Input, Label, Static
+from textual_autocomplete import AutoComplete, DropdownItem
 
 from modules.git.models import GitError
 from modules.modals.add_worktree import AddWorktreeModal
@@ -37,19 +38,19 @@ class TestAddWorktreeModalCompose:
             assert len(titles) == 1
             assert "Add Worktree" in titles.first().render().plain
 
-    async def test_renders_name_input(self, modal_app, mock_list_branches):
-        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
-        async with app.run_test(size=(100, 40)) as pilot:
-            await _wait_ready(pilot, app)
-            name_input = app.screen.query_one("#wt-name", Input)
-            assert name_input.placeholder == "my-worktree"
-
     async def test_renders_branch_input(self, modal_app, mock_list_branches):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
             branch_input = app.screen.query_one("#branch-input", Input)
             assert "branch" in branch_input.placeholder.lower()
+
+    async def test_renders_autocomplete(self, modal_app, mock_list_branches):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            ac = app.screen.query_one("#branch-autocomplete", AutoComplete)
+            assert ac is not None
 
     async def test_renders_buttons(self, modal_app, mock_list_branches):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
@@ -74,20 +75,16 @@ class TestAddWorktreeModalBranchLoading:
             mock_list_branches.assert_called_once_with("/repo")
             assert "main" in app.screen._branches
 
-    async def test_tab_autocompletes_branch_suggestion(
+    async def test_populates_autocomplete_candidates(
         self, modal_app, mock_list_branches
     ):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
-            branch_input = app.screen.query_one("#branch-input", Input)
-            branch_input.focus()
-            # Type partial text to trigger suggestion
-            branch_input.value = "mai"
-            branch_input._suggestion = "main"
-            await pilot.press("tab")
-            await pilot.pause()
-            assert branch_input.value == "main"
+            ac = app.screen.query_one("#branch-autocomplete", AutoComplete)
+            assert len(ac.candidates) == 3
+            values = {c.value for c in ac.candidates}
+            assert values == {"main", "dev", "feature/login"}
 
     async def test_branch_load_failure_sets_empty(self, modal_app):
         with patch(
@@ -132,7 +129,7 @@ class TestAddWorktreeModalCancel:
 
 
 class TestAddWorktreeModalValidation:
-    async def test_empty_name_does_not_call_add(
+    async def test_empty_branch_does_not_call_add(
         self, modal_app, mock_list_branches, mock_add_worktree
     ):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
@@ -143,13 +140,13 @@ class TestAddWorktreeModalValidation:
             await app.workers.wait_for_complete()
             mock_add_worktree.assert_not_called()
 
-    async def test_whitespace_only_name_does_not_call_add(
+    async def test_whitespace_only_branch_does_not_call_add(
         self, modal_app, mock_list_branches, mock_add_worktree
     ):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
-            app.screen.query_one("#wt-name", Input).value = "   "
+            app.screen.query_one("#branch-input", Input).value = "   "
             await pilot.click("#confirm-btn")
             await pilot.pause()
             await app.workers.wait_for_complete()
@@ -162,38 +159,19 @@ class TestAddWorktreeModalValidation:
 
 
 class TestAddWorktreeModalCreate:
-    async def test_create_with_no_branch(
-        self, modal_app, mock_list_branches, mock_add_worktree
-    ):
-        app = modal_app(AddWorktreeModal(repo_dir="/home/user/repos/project"))
-        async with app.run_test(size=(100, 40)) as pilot:
-            await _wait_ready(pilot, app)
-            app.screen.query_one("#wt-name", Input).value = "new-wt"
-            await pilot.click("#confirm-btn")
-            await pilot.pause()
-            await app.workers.wait_for_complete()
-            mock_add_worktree.assert_called_once_with(
-                "/home/user/repos/project",
-                "/home/user/repos/new-wt",
-                None,
-                None,
-            )
-            assert app.modal_result is True
-
     async def test_create_with_existing_branch(
         self, modal_app, mock_list_branches, mock_add_worktree
     ):
         app = modal_app(AddWorktreeModal(repo_dir="/home/user/repos/project"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
-            app.screen.query_one("#wt-name", Input).value = "new-wt"
             app.screen.query_one("#branch-input", Input).value = "main"
             await pilot.click("#confirm-btn")
             await pilot.pause()
             await app.workers.wait_for_complete()
             mock_add_worktree.assert_called_once_with(
                 "/home/user/repos/project",
-                "/home/user/repos/new-wt",
+                "/home/user/repos/main",
                 "main",
                 None,
             )
@@ -205,7 +183,6 @@ class TestAddWorktreeModalCreate:
         app = modal_app(AddWorktreeModal(repo_dir="/home/user/repos/project"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
-            app.screen.query_one("#wt-name", Input).value = "new-wt"
             app.screen.query_one("#branch-input", Input).value = "feature/new"
             await pilot.click("#confirm-btn")
             await pilot.pause()
@@ -213,9 +190,28 @@ class TestAddWorktreeModalCreate:
             # Not in known branches → treated as new branch off "dev"
             mock_add_worktree.assert_called_once_with(
                 "/home/user/repos/project",
-                "/home/user/repos/new-wt",
+                "/home/user/repos/feature-new",
                 "dev",
                 "feature/new",
+            )
+            assert app.modal_result is True
+
+    async def test_create_with_existing_branch_containing_slash(
+        self, modal_app, mock_list_branches, mock_add_worktree
+    ):
+        app = modal_app(AddWorktreeModal(repo_dir="/home/user/repos/project"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            app.screen.query_one("#branch-input", Input).value = "feature/login"
+            await pilot.click("#confirm-btn")
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            # Existing branch with slash → worktree dir uses dashes
+            mock_add_worktree.assert_called_once_with(
+                "/home/user/repos/project",
+                "/home/user/repos/feature-login",
+                "feature/login",
+                None,
             )
             assert app.modal_result is True
 
@@ -225,8 +221,8 @@ class TestAddWorktreeModalCreate:
         app = modal_app(AddWorktreeModal(repo_dir="/home/user/repos/project"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
-            app.screen.query_one("#wt-name", Input).value = "new-wt"
-            app.screen.query_one("#wt-name", Input).focus()
+            app.screen.query_one("#branch-input", Input).value = "dev"
+            app.screen.query_one("#branch-input", Input).focus()
             await pilot.press("enter")
             await pilot.pause()
             await app.workers.wait_for_complete()
@@ -250,7 +246,7 @@ class TestAddWorktreeModalErrors:
             )
             async with app.run_test(size=(100, 40)) as pilot:
                 await _wait_ready(pilot, app)
-                app.screen.query_one("#wt-name", Input).value = "new-wt"
+                app.screen.query_one("#branch-input", Input).value = "new-feature"
                 await pilot.click("#confirm-btn")
                 await pilot.pause()
                 await app.workers.wait_for_complete()

@@ -9,6 +9,7 @@ description = "A Textual TUI for managing Git worktrees with tmux integration"
 requires-python = ">=3.11"
 dependencies = [
     "textual>=0.40",
+    "textual-autocomplete>=4.0.6",
 ]
 
 [dependency-groups]
