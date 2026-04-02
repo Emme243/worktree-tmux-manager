@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.modals.add_worktree — AddWorktreeModal."""
+"""Tests for modules.modals.add_worktree — AddWorktreeModal."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from textual.widgets import Button, Input, Label, Static
 
-from tt_tmux.git.models import GitError
-from tt_tmux.modals.add_worktree import AddWorktreeModal
+from modules.git.models import GitError
+from modules.modals.add_worktree import AddWorktreeModal
 
 
 # ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ class TestAddWorktreeModalBranchLoading:
 
     async def test_branch_load_failure_sets_empty(self, modal_app):
         with patch(
-            "tt_tmux.modals.add_worktree.list_branches",
+            "modules.modals.add_worktree.list_branches",
             new_callable=AsyncMock,
             side_effect=GitError("network error"),
         ):
@@ -241,7 +241,7 @@ class TestAddWorktreeModalCreate:
 class TestAddWorktreeModalErrors:
     async def test_git_error_does_not_dismiss(self, modal_app, mock_list_branches):
         with patch(
-            "tt_tmux.modals.add_worktree.add_worktree",
+            "modules.modals.add_worktree.add_worktree",
             new_callable=AsyncMock,
             side_effect=GitError("already exists"),
         ):

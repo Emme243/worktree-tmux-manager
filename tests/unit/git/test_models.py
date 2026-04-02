@@ -1,10 +1,10 @@
-"""Tests for tt_tmux.git.models — pure dataclass and property tests."""
+"""Tests for modules.git.models — pure dataclass and property tests."""
 
 from __future__ import annotations
 
 import pytest
 
-from tt_tmux.git.models import GitError, WorkingTreeStatus, WorktreeInfo
+from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
 
 
 # ---------------------------------------------------------------------------

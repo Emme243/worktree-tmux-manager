@@ -1,8 +1,8 @@
-"""Tests for tt_tmux.widgets.__init__ — public API exports."""
+"""Tests for modules.widgets.__init__ — public API exports."""
 
 from __future__ import annotations
 
-from tt_tmux.widgets import SearchBar, VimDataTable
+from modules.widgets import SearchBar, VimDataTable
 
 
 class TestWidgetExports:
@@ -13,6 +13,6 @@ class TestWidgetExports:
         assert VimDataTable is not None
 
     def test_all_contains_expected_names(self):
-        import tt_tmux.widgets as mod
+        import modules.widgets as mod
 
         assert set(mod.__all__) == {"SearchBar", "VimDataTable"}

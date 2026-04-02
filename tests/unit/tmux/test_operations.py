@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.tmux.operations — tmux subprocess operations."""
+"""Tests for modules.tmux.operations — tmux subprocess operations."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from tt_tmux.git.models import WorktreeInfo
-from tt_tmux.tmux.models import SessionConfig, TmuxError, WindowConfig
-from tt_tmux.tmux.operations import (
+from modules.git.models import WorktreeInfo
+from modules.tmux.models import SessionConfig, TmuxError, WindowConfig
+from modules.tmux.operations import (
     _attach_session,
     _create_session,
     _run_tmux,
@@ -197,7 +197,7 @@ class TestIsInsideTmux:
 class TestAttachSession:
     def test_switches_client_when_inside_tmux(self, mock_run_tmux):
         with patch(
-            "tt_tmux.tmux.operations.is_inside_tmux", return_value=True
+            "modules.tmux.operations.is_inside_tmux", return_value=True
         ):
             _attach_session("my-session")
             mock_run_tmux.assert_called_once_with(
@@ -206,7 +206,7 @@ class TestAttachSession:
 
     def test_attaches_session_when_outside_tmux(self, mock_run_tmux):
         with patch(
-            "tt_tmux.tmux.operations.is_inside_tmux", return_value=False
+            "modules.tmux.operations.is_inside_tmux", return_value=False
         ):
             _attach_session("my-session")
             mock_run_tmux.assert_called_once_with(
@@ -331,11 +331,11 @@ class TestEnterWorktreeSession:
             ],
         )
         with patch(
-            "tt_tmux.tmux.operations.session_exists", return_value=False
+            "modules.tmux.operations.session_exists", return_value=False
         ) as mock_exists, patch(
-            "tt_tmux.tmux.operations._create_session"
+            "modules.tmux.operations._create_session"
         ) as mock_create, patch(
-            "tt_tmux.tmux.operations._attach_session"
+            "modules.tmux.operations._attach_session"
         ) as mock_attach:
             enter_worktree_session(config)
             mock_exists.assert_called_once_with("tt-feat")
@@ -350,11 +350,11 @@ class TestEnterWorktreeSession:
             ],
         )
         with patch(
-            "tt_tmux.tmux.operations.session_exists", return_value=True
+            "modules.tmux.operations.session_exists", return_value=True
         ) as mock_exists, patch(
-            "tt_tmux.tmux.operations._create_session"
+            "modules.tmux.operations._create_session"
         ) as mock_create, patch(
-            "tt_tmux.tmux.operations._attach_session"
+            "modules.tmux.operations._attach_session"
         ) as mock_attach:
             enter_worktree_session(config)
             mock_exists.assert_called_once_with("tt-feat")

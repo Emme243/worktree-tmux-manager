@@ -8,7 +8,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Label, Static
 
-from tt_tmux.git import GitError, WorktreeInfo, remove_worktree
+from modules.git import GitError, WorktreeInfo, remove_worktree
 
 
 class RemoveWorktreeModal(ModalScreen[bool]):

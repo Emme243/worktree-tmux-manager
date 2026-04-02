@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.widgets.search_bar — toggleable search/filter bar."""
+"""Tests for modules.widgets.search_bar — toggleable search/filter bar."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 from textual.containers import Horizontal
 from textual.widgets import Input, Label
 
-from tt_tmux.widgets.search_bar import SearchBar
+from modules.widgets.search_bar import SearchBar
 
 from .conftest import SearchBarApp
 

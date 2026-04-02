@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.widgets.vim_data_table — DataTable with vim navigation."""
+"""Tests for modules.widgets.vim_data_table — DataTable with vim navigation."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from textual.widgets import DataTable
 
-from tt_tmux.widgets.vim_data_table import VimDataTable
+from modules.widgets.vim_data_table import VimDataTable
 
 from .conftest import VimDataTableApp
 

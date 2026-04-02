@@ -9,26 +9,26 @@ from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Static
 
-from tt_tmux.git import (
+from modules.git import (
     GitError,
     WorktreeInfo,
     list_worktrees,
     populate_worktree_statuses,
 )
-from tt_tmux.modals import (
+from modules.modals import (
     AddWorktreeModal,
     RemoveWorktreeModal,
     RenameWorktreeModal,
 )
 from rich.text import Text
 
-from tt_tmux.tmux import (
+from modules.tmux import (
     TmuxError,
     build_session_config,
     enter_worktree_session,
     is_worktree_session_active,
 )
-from tt_tmux.widgets import SearchBar, VimDataTable
+from modules.widgets import SearchBar, VimDataTable
 
 
 class WorktreeListScreen(Screen):

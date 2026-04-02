@@ -1,8 +1,8 @@
-"""Tests for tt_tmux.modals.__init__ — public API exports."""
+"""Tests for modules.modals.__init__ — public API exports."""
 
 from __future__ import annotations
 
-from tt_tmux.modals import (
+from modules.modals import (
     AddWorktreeModal,
     RemoveWorktreeModal,
     RenameWorktreeModal,
@@ -20,7 +20,7 @@ class TestModalsExports:
         assert RenameWorktreeModal is not None
 
     def test_all_contains_expected_names(self):
-        import tt_tmux.modals as mod
+        import modules.modals as mod
 
         assert set(mod.__all__) == {
             "AddWorktreeModal",

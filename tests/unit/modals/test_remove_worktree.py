@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.modals.remove_worktree — RemoveWorktreeModal."""
+"""Tests for modules.modals.remove_worktree — RemoveWorktreeModal."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from textual.widgets import Button, Label, Static
 
-from tt_tmux.git.models import GitError, WorkingTreeStatus, WorktreeInfo
-from tt_tmux.modals.remove_worktree import RemoveWorktreeModal
+from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
+from modules.modals.remove_worktree import RemoveWorktreeModal
 
 
 # ---------------------------------------------------------------------------
@@ -175,7 +175,7 @@ class TestRemoveWorktreeModalConfirm:
 class TestRemoveWorktreeModalErrors:
     async def test_git_error_does_not_dismiss(self, modal_app, clean_worktree):
         with patch(
-            "tt_tmux.modals.remove_worktree.remove_worktree",
+            "modules.modals.remove_worktree.remove_worktree",
             new_callable=AsyncMock,
             side_effect=GitError("worktree is locked"),
         ):

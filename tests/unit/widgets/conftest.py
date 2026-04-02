@@ -6,8 +6,8 @@ import pytest
 from textual.app import App, ComposeResult
 from textual.widgets import DataTable
 
-from tt_tmux.widgets.search_bar import SearchBar
-from tt_tmux.widgets.vim_data_table import VimDataTable
+from modules.widgets.search_bar import SearchBar
+from modules.widgets.vim_data_table import VimDataTable
 
 
 # ---------------------------------------------------------------------------

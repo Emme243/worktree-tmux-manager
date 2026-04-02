@@ -28,7 +28,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["tt_tmux"]
+source = ["modules"]
 
 [tool.coverage.report]
 show_missing = true

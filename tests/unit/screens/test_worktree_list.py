@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.screens.worktree_list — WorktreeListScreen."""
+"""Tests for modules.screens.worktree_list — WorktreeListScreen."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ import pytest
 from rich.text import Text
 from textual.widgets import Button, DataTable, Input, Static
 
-from tt_tmux.git.models import GitError, WorkingTreeStatus, WorktreeInfo
-from tt_tmux.screens.worktree_list import WorktreeListScreen
-from tt_tmux.tmux import TmuxError
-from tt_tmux.widgets import SearchBar, VimDataTable
+from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
+from modules.screens.worktree_list import WorktreeListScreen
+from modules.tmux import TmuxError
+from modules.widgets import SearchBar, VimDataTable
 
 from .conftest import ScreenTestApp, wait_ready
 
@@ -136,7 +136,7 @@ class TestWorktreeListScreenRefresh:
         self, mock_populate_statuses, mock_tmux_active
     ):
         with patch(
-            "tt_tmux.screens.worktree_list.list_worktrees",
+            "modules.screens.worktree_list.list_worktrees",
             new_callable=AsyncMock,
             side_effect=GitError("repo not found"),
         ):
@@ -186,7 +186,7 @@ class TestWorktreeListScreenTmuxIndicator:
         self, mock_list_worktrees, mock_populate_statuses
     ):
         with patch(
-            "tt_tmux.screens.worktree_list.is_worktree_session_active",
+            "modules.screens.worktree_list.is_worktree_session_active",
             return_value=True,
         ):
             app = _make_app()
@@ -218,7 +218,7 @@ class TestWorktreeListScreenGetSelected:
         self, mock_populate_statuses, mock_tmux_active
     ):
         with patch(
-            "tt_tmux.screens.worktree_list.list_worktrees",
+            "modules.screens.worktree_list.list_worktrees",
             new_callable=AsyncMock,
             return_value=[],
         ):
@@ -266,7 +266,7 @@ class TestWorktreeListScreenActions:
                 app.screen.action_create()
                 mock_push.assert_called_once()
                 args = mock_push.call_args
-                from tt_tmux.modals import AddWorktreeModal
+                from modules.modals import AddWorktreeModal
 
                 assert isinstance(args[0][0], AddWorktreeModal)
 
@@ -280,7 +280,7 @@ class TestWorktreeListScreenActions:
                 app.screen.action_delete()
                 mock_push.assert_called_once()
                 args = mock_push.call_args
-                from tt_tmux.modals import RemoveWorktreeModal
+                from modules.modals import RemoveWorktreeModal
 
                 assert isinstance(args[0][0], RemoveWorktreeModal)
 
@@ -288,7 +288,7 @@ class TestWorktreeListScreenActions:
         self, mock_populate_statuses, mock_tmux_active
     ):
         with patch(
-            "tt_tmux.screens.worktree_list.list_worktrees",
+            "modules.screens.worktree_list.list_worktrees",
             new_callable=AsyncMock,
             return_value=[],
         ):
@@ -309,7 +309,7 @@ class TestWorktreeListScreenActions:
                 app.screen.action_rename()
                 mock_push.assert_called_once()
                 args = mock_push.call_args
-                from tt_tmux.modals import RenameWorktreeModal
+                from modules.modals import RenameWorktreeModal
 
                 assert isinstance(args[0][0], RenameWorktreeModal)
 
@@ -327,7 +327,7 @@ class TestWorktreeListScreenActions:
         self, mock_populate_statuses, mock_tmux_active
     ):
         with patch(
-            "tt_tmux.screens.worktree_list.list_worktrees",
+            "modules.screens.worktree_list.list_worktrees",
             new_callable=AsyncMock,
             return_value=[],
         ):
@@ -427,7 +427,7 @@ class TestWorktreeListScreenEnterWorktree:
             table = app.screen.query_one("#wt-table", VimDataTable)
             table.move_cursor(row=0)  # bare
             with patch(
-                "tt_tmux.screens.worktree_list.build_session_config"
+                "modules.screens.worktree_list.build_session_config"
             ) as mock_cfg:
                 app.screen.action_enter_worktree()
                 mock_cfg.assert_not_called()
@@ -452,7 +452,7 @@ class TestWorktreeListScreenEnterWorktree:
         self, mock_populate_statuses, mock_tmux_active
     ):
         with patch(
-            "tt_tmux.screens.worktree_list.list_worktrees",
+            "modules.screens.worktree_list.list_worktrees",
             new_callable=AsyncMock,
             return_value=[],
         ):
@@ -460,7 +460,7 @@ class TestWorktreeListScreenEnterWorktree:
             async with app.run_test(size=(120, 40)) as pilot:
                 await wait_ready(pilot, app)
                 with patch(
-                    "tt_tmux.screens.worktree_list.build_session_config"
+                    "modules.screens.worktree_list.build_session_config"
                 ) as mock_cfg:
                     app.screen.action_enter_worktree()
                     mock_cfg.assert_not_called()
@@ -471,7 +471,7 @@ class TestWorktreeListScreenEnterWorktree:
         mock_build_session_config,
     ):
         with patch(
-            "tt_tmux.screens.worktree_list.enter_worktree_session",
+            "modules.screens.worktree_list.enter_worktree_session",
             side_effect=TmuxError("session failed"),
         ):
             app = _make_app()

@@ -1,8 +1,8 @@
-"""Tests for tt_tmux.screens.__init__ — public API exports."""
+"""Tests for modules.screens.__init__ — public API exports."""
 
 from __future__ import annotations
 
-from tt_tmux.screens import WorktreeListScreen
+from modules.screens import WorktreeListScreen
 
 
 class TestScreensExports:
@@ -10,6 +10,6 @@ class TestScreensExports:
         assert WorktreeListScreen is not None
 
     def test_all_contains_expected_names(self):
-        import tt_tmux.screens as mod
+        import modules.screens as mod
 
         assert set(mod.__all__) == {"WorktreeListScreen"}

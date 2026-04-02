@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from textual.app import App
 
-from tt_tmux.git.models import WorkingTreeStatus, WorktreeInfo
+from modules.git.models import WorkingTreeStatus, WorktreeInfo
 
 
 class ModalTestApp(App):
@@ -44,7 +44,7 @@ def modal_app():
 def mock_list_branches():
     """Patch ``list_branches`` in the add_worktree module."""
     with patch(
-        "tt_tmux.modals.add_worktree.list_branches",
+        "modules.modals.add_worktree.list_branches",
         new_callable=AsyncMock,
         return_value=["main", "dev", "feature/login"],
     ) as mock:
@@ -55,7 +55,7 @@ def mock_list_branches():
 def mock_add_worktree():
     """Patch ``add_worktree`` in the add_worktree module."""
     with patch(
-        "tt_tmux.modals.add_worktree.add_worktree",
+        "modules.modals.add_worktree.add_worktree",
         new_callable=AsyncMock,
     ) as mock:
         yield mock
@@ -65,7 +65,7 @@ def mock_add_worktree():
 def mock_remove_worktree():
     """Patch ``remove_worktree`` in the remove_worktree module."""
     with patch(
-        "tt_tmux.modals.remove_worktree.remove_worktree",
+        "modules.modals.remove_worktree.remove_worktree",
         new_callable=AsyncMock,
     ) as mock:
         yield mock
@@ -75,7 +75,7 @@ def mock_remove_worktree():
 def mock_move_worktree():
     """Patch ``move_worktree`` in the rename_worktree module."""
     with patch(
-        "tt_tmux.modals.rename_worktree.move_worktree",
+        "modules.modals.rename_worktree.move_worktree",
         new_callable=AsyncMock,
     ) as mock:
         yield mock

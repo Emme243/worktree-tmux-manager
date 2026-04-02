@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tt_tmux.tmux.models import SessionConfig, WindowConfig
+from modules.tmux.models import SessionConfig, WindowConfig
 
 
 # ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ def mock_run_tmux():
     result.stderr = ""
 
     with patch(
-        "tt_tmux.tmux.operations._run_tmux",
+        "modules.tmux.operations._run_tmux",
         return_value=result,
     ) as mock:
         yield mock

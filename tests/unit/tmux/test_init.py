@@ -1,8 +1,8 @@
-"""Tests for tt_tmux.tmux.__init__ — public API exports."""
+"""Tests for modules.tmux.__init__ — public API exports."""
 
 from __future__ import annotations
 
-from tt_tmux.tmux import (
+from modules.tmux import (
     SessionConfig,
     TmuxError,
     WindowConfig,
@@ -32,7 +32,7 @@ class TestTmuxExports:
         assert callable(is_worktree_session_active)
 
     def test_all_contains_expected_names(self):
-        import tt_tmux.tmux as mod
+        import modules.tmux as mod
 
         assert set(mod.__all__) == {
             "SessionConfig",

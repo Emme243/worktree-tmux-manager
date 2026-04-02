@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from textual.app import App
 
-from tt_tmux.git.models import WorkingTreeStatus, WorktreeInfo
+from modules.git.models import WorkingTreeStatus, WorktreeInfo
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +54,7 @@ def sample_worktrees() -> list[WorktreeInfo]:
 def mock_list_worktrees(sample_worktrees):
     """Patch ``list_worktrees`` in the worktree_list module."""
     with patch(
-        "tt_tmux.screens.worktree_list.list_worktrees",
+        "modules.screens.worktree_list.list_worktrees",
         new_callable=AsyncMock,
         return_value=sample_worktrees,
     ) as mock:
@@ -65,7 +65,7 @@ def mock_list_worktrees(sample_worktrees):
 def mock_populate_statuses():
     """Patch ``populate_worktree_statuses`` — a no-op by default."""
     with patch(
-        "tt_tmux.screens.worktree_list.populate_worktree_statuses",
+        "modules.screens.worktree_list.populate_worktree_statuses",
         new_callable=AsyncMock,
     ) as mock:
         yield mock
@@ -80,7 +80,7 @@ def mock_populate_statuses():
 def mock_tmux_active():
     """Patch ``is_worktree_session_active`` — returns False by default."""
     with patch(
-        "tt_tmux.screens.worktree_list.is_worktree_session_active",
+        "modules.screens.worktree_list.is_worktree_session_active",
         return_value=False,
     ) as mock:
         yield mock
@@ -90,7 +90,7 @@ def mock_tmux_active():
 def mock_build_session_config():
     """Patch ``build_session_config``."""
     with patch(
-        "tt_tmux.screens.worktree_list.build_session_config",
+        "modules.screens.worktree_list.build_session_config",
     ) as mock:
         mock.return_value = MagicMock()
         yield mock
@@ -100,7 +100,7 @@ def mock_build_session_config():
 def mock_enter_worktree_session():
     """Patch ``enter_worktree_session``."""
     with patch(
-        "tt_tmux.screens.worktree_list.enter_worktree_session",
+        "modules.screens.worktree_list.enter_worktree_session",
     ) as mock:
         yield mock
 

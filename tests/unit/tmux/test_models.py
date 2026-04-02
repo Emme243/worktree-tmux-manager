@@ -1,10 +1,10 @@
-"""Tests for tt_tmux.tmux.models — TmuxError, WindowConfig, SessionConfig."""
+"""Tests for modules.tmux.models — TmuxError, WindowConfig, SessionConfig."""
 
 from __future__ import annotations
 
 import pytest
 
-from tt_tmux.tmux.models import SessionConfig, TmuxError, WindowConfig
+from modules.tmux.models import SessionConfig, TmuxError, WindowConfig
 
 
 # ---------------------------------------------------------------------------

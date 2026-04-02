@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.screens.help_overlay — HelpOverlay."""
+"""Tests for modules.screens.help_overlay — HelpOverlay."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import pytest
 from textual.app import App
 from textual.widgets import Static
 
-from tt_tmux.screens.help_overlay import HELP_TEXT, HelpOverlay
+from modules.screens.help_overlay import HELP_TEXT, HelpOverlay
 
 
 # ---------------------------------------------------------------------------

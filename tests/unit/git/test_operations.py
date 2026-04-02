@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.git.operations — parsing functions and async git commands."""
+"""Tests for modules.git.operations — parsing functions and async git commands."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tt_tmux.git.models import GitError, WorkingTreeStatus, WorktreeInfo
-from tt_tmux.git.operations import (
+from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
+from modules.git.operations import (
     add_worktree,
     get_worktree_status,
     is_git_repo,
@@ -245,7 +245,7 @@ class TestRunGit:
         )
 
         with patch(
-            "tt_tmux.git.operations.asyncio.create_subprocess_exec",
+            "modules.git.operations.asyncio.create_subprocess_exec",
             new_callable=AsyncMock,
             return_value=mock_proc,
         ):
@@ -260,7 +260,7 @@ class TestRunGit:
         )
 
         with patch(
-            "tt_tmux.git.operations.asyncio.create_subprocess_exec",
+            "modules.git.operations.asyncio.create_subprocess_exec",
             new_callable=AsyncMock,
             return_value=mock_proc,
         ):
@@ -273,7 +273,7 @@ class TestRunGit:
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
 
         with patch(
-            "tt_tmux.git.operations.asyncio.create_subprocess_exec",
+            "modules.git.operations.asyncio.create_subprocess_exec",
             new_callable=AsyncMock,
             return_value=mock_proc,
         ):
@@ -286,7 +286,7 @@ class TestRunGit:
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
 
         with patch(
-            "tt_tmux.git.operations.asyncio.create_subprocess_exec",
+            "modules.git.operations.asyncio.create_subprocess_exec",
             new_callable=AsyncMock,
             return_value=mock_proc,
         ) as mock_exec:
@@ -374,7 +374,7 @@ class TestPopulateWorktreeStatuses:
         expected_status = WorkingTreeStatus(staged=1)
 
         with patch(
-            "tt_tmux.git.operations.get_worktree_status",
+            "modules.git.operations.get_worktree_status",
             new_callable=AsyncMock,
             return_value=expected_status,
         ):
@@ -386,7 +386,7 @@ class TestPopulateWorktreeStatuses:
         bare_wt = WorktreeInfo(path="/repo/bare", is_bare=True)
 
         with patch(
-            "tt_tmux.git.operations.get_worktree_status",
+            "modules.git.operations.get_worktree_status",
             new_callable=AsyncMock,
         ) as mock_status:
             await populate_worktree_statuses([bare_wt])
@@ -398,7 +398,7 @@ class TestPopulateWorktreeStatuses:
         wt = WorktreeInfo(path="/repo/broken")
 
         with patch(
-            "tt_tmux.git.operations.get_worktree_status",
+            "modules.git.operations.get_worktree_status",
             new_callable=AsyncMock,
             side_effect=GitError("status failed"),
         ):
@@ -418,7 +418,7 @@ class TestPopulateWorktreeStatuses:
             return status1 if path == "/repo/wt1" else status2
 
         with patch(
-            "tt_tmux.git.operations.get_worktree_status",
+            "modules.git.operations.get_worktree_status",
             new_callable=AsyncMock,
             side_effect=_fake_status,
         ):

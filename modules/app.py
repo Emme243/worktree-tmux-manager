@@ -9,8 +9,8 @@ from textual import work
 from textual.app import App
 from textual.binding import Binding
 
-from tt_tmux.screens.help_overlay import HelpOverlay
-from tt_tmux.screens.worktree_list import WorktreeListScreen
+from modules.screens.help_overlay import HelpOverlay
+from modules.screens.worktree_list import WorktreeListScreen
 
 REPO_DIR = Path.home() / "projects" / "turntable"
 
@@ -41,7 +41,7 @@ class GitWorktreeApp(App):
             self.exit()
             return
 
-        from tt_tmux.git import is_git_repo
+        from modules.git import is_git_repo
 
         if not await is_git_repo(repo):
             self.notify(

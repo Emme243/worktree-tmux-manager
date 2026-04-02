@@ -6,17 +6,17 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from tt_tmux.git.models import WorkingTreeStatus, WorktreeInfo
+from modules.git.models import WorkingTreeStatus, WorktreeInfo
 
 
 @pytest.fixture
 def mock_run_git():
-    """Patch ``tt_tmux.git.operations.run_git`` as an AsyncMock.
+    """Patch ``modules.git.operations.run_git`` as an AsyncMock.
 
     Returns the mock so tests can configure ``.return_value`` or ``.side_effect``.
     """
     with patch(
-        "tt_tmux.git.operations.run_git", new_callable=AsyncMock
+        "modules.git.operations.run_git", new_callable=AsyncMock
     ) as mock:
         yield mock
 

@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.modals.rename_worktree — RenameWorktreeModal."""
+"""Tests for modules.modals.rename_worktree — RenameWorktreeModal."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from textual.widgets import Button, Input, Label, Static
 
-from tt_tmux.git.models import GitError
-from tt_tmux.modals.rename_worktree import RenameWorktreeModal
+from modules.git.models import GitError
+from modules.modals.rename_worktree import RenameWorktreeModal
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +180,7 @@ class TestRenameWorktreeModalRename:
 class TestRenameWorktreeModalErrors:
     async def test_git_error_does_not_dismiss(self, modal_app):
         with patch(
-            "tt_tmux.modals.rename_worktree.move_worktree",
+            "modules.modals.rename_worktree.move_worktree",
             new_callable=AsyncMock,
             side_effect=GitError("permission denied"),
         ):

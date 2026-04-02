@@ -1,4 +1,4 @@
-"""Tests for tt_tmux.app — GitWorktreeApp main application."""
+"""Tests for modules.app — GitWorktreeApp main application."""
 
 from __future__ import annotations
 
@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from textual.app import App
 
-from tt_tmux.app import REPO_DIR, GitWorktreeApp
-from tt_tmux.screens.help_overlay import HelpOverlay
-from tt_tmux.screens.worktree_list import WorktreeListScreen
+from modules.app import REPO_DIR, GitWorktreeApp
+from modules.screens.help_overlay import HelpOverlay
+from modules.screens.worktree_list import WorktreeListScreen
 
 
 # ---------------------------------------------------------------------------
@@ -46,7 +46,7 @@ class TestGitWorktreeAppSetup:
 class TestValidateAndStartDirMissing:
     async def test_notifies_error_when_dir_missing(self):
         app = GitWorktreeApp()
-        with patch("tt_tmux.app.os.path.isdir", return_value=False):
+        with patch("modules.app.os.path.isdir", return_value=False):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await pilot.pause()
@@ -68,9 +68,9 @@ class TestValidateAndStartNotGitRepo:
     async def test_notifies_error_when_not_git_repo(self):
         app = GitWorktreeApp()
         with (
-            patch("tt_tmux.app.os.path.isdir", return_value=True),
+            patch("modules.app.os.path.isdir", return_value=True),
             patch(
-                "tt_tmux.git.is_git_repo",
+                "modules.git.is_git_repo",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -94,23 +94,23 @@ class TestValidateAndStartSuccess:
     async def test_pushes_worktree_list_screen(self):
         app = GitWorktreeApp()
         with (
-            patch("tt_tmux.app.os.path.isdir", return_value=True),
+            patch("modules.app.os.path.isdir", return_value=True),
             patch(
-                "tt_tmux.git.is_git_repo",
+                "modules.git.is_git_repo",
                 new_callable=AsyncMock,
                 return_value=True,
             ),
             patch(
-                "tt_tmux.screens.worktree_list.list_worktrees",
+                "modules.screens.worktree_list.list_worktrees",
                 new_callable=AsyncMock,
                 return_value=[],
             ),
             patch(
-                "tt_tmux.screens.worktree_list.populate_worktree_statuses",
+                "modules.screens.worktree_list.populate_worktree_statuses",
                 new_callable=AsyncMock,
             ),
             patch(
-                "tt_tmux.screens.worktree_list.is_worktree_session_active",
+                "modules.screens.worktree_list.is_worktree_session_active",
                 return_value=False,
             ),
         ):
@@ -134,7 +134,7 @@ class TestValidateAndStartSuccess:
 class TestActionToggleDark:
     async def test_toggles_to_light(self):
         app = GitWorktreeApp()
-        with patch("tt_tmux.app.os.path.isdir", return_value=False):
+        with patch("modules.app.os.path.isdir", return_value=False):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
@@ -144,7 +144,7 @@ class TestActionToggleDark:
 
     async def test_toggles_to_dark(self):
         app = GitWorktreeApp()
-        with patch("tt_tmux.app.os.path.isdir", return_value=False):
+        with patch("modules.app.os.path.isdir", return_value=False):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
@@ -161,7 +161,7 @@ class TestActionToggleDark:
 class TestActionHelp:
     async def test_pushes_help_overlay(self):
         app = GitWorktreeApp()
-        with patch("tt_tmux.app.os.path.isdir", return_value=False):
+        with patch("modules.app.os.path.isdir", return_value=False):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
@@ -174,7 +174,7 @@ class TestActionHelp:
 
     async def test_question_mark_key_opens_help(self):
         app = GitWorktreeApp()
-        with patch("tt_tmux.app.os.path.isdir", return_value=False):
+        with patch("modules.app.os.path.isdir", return_value=False):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()

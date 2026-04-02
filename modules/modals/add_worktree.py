@@ -12,7 +12,7 @@ from textual.screen import ModalScreen
 from textual.suggester import SuggestFromList
 from textual.widgets import Button, Input, Label, Static
 
-from tt_tmux.git import GitError, add_worktree, list_branches
+from modules.git import GitError, add_worktree, list_branches
 
 
 class AddWorktreeModal(ModalScreen[bool]):

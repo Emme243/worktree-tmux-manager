@@ -10,7 +10,7 @@ import os
 import re
 import subprocess
 
-from tt_tmux.git.models import WorktreeInfo
+from modules.git.models import WorktreeInfo
 
 from .models import SessionConfig, TmuxError, WindowConfig
 
