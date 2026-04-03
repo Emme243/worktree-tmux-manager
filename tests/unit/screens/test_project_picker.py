@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from textual.app import App
-from textual.widgets import Label
+from textual.widgets import Button, Label
 
 from modules.core.config import AppConfig, ProjectConfig
 from modules.screens.project_picker import ProjectPickerScreen, _ConfirmDeleteModal
@@ -365,3 +365,37 @@ class TestConfirmDeleteModal:
             await pilot.press("y")
             await pilot.pause()
             assert app.result is True
+
+    async def test_n_key_dismisses_false(self):
+        class ConfirmTestApp(App[None]):
+            def __init__(self):
+                super().__init__()
+                self.result = _UNSET
+
+            def on_mount(self):
+                self.push_screen(
+                    _ConfirmDeleteModal("my-project"), callback=self._on_dismiss
+                )
+
+            def _on_dismiss(self, result):
+                self.result = result
+
+        async with ConfirmTestApp().run_test(size=(80, 20)) as pilot:
+            app = pilot.app
+            await _wait_ready(pilot, app)
+            await pilot.press("n")
+            await pilot.pause()
+            assert app.result is False
+
+    async def test_button_labels_use_key_format(self):
+        class ConfirmTestApp(App[None]):
+            def on_mount(self):
+                self.push_screen(_ConfirmDeleteModal("my-project"))
+
+        async with ConfirmTestApp().run_test(size=(80, 20)) as pilot:
+            app = pilot.app
+            await _wait_ready(pilot, app)
+            yes_btn = app.screen.query_one("#yes-btn", Button)
+            no_btn = app.screen.query_one("#no-btn", Button)
+            assert "Y" in yes_btn.label.plain
+            assert "N" in no_btn.label.plain

@@ -19,6 +19,7 @@ class _ConfirmDeleteModal(ModalScreen[bool]):
 
     BINDINGS = [
         Binding("escape", "cancel", "No", show=False),
+        Binding("n", "cancel", "No", show=False),
         Binding("y", "confirm", "Yes", show=False),
     ]
 
@@ -48,8 +49,8 @@ class _ConfirmDeleteModal(ModalScreen[bool]):
         with Vertical(id="confirm-dialog"):
             yield Label(f'Delete "{self._project_name}"?')
             with Horizontal(id="confirm-buttons"):
-                yield Button("Yes", id="yes-btn", variant="error")
-                yield Button("No", id="no-btn")
+                yield Button("\\[Y]es", id="yes-btn", variant="error")
+                yield Button("\\[N]o", id="no-btn")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss(event.button.id == "yes-btn")
