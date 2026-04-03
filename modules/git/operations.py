@@ -143,6 +143,11 @@ async def remove_worktree(repo_dir: str, wt_path: str, force: bool = False) -> s
     return await run_git(repo_dir, *args)
 
 
+async def delete_branch(repo_dir: str, branch: str, force: bool = False) -> str:
+    flag = "-D" if force else "-d"
+    return await run_git(repo_dir, "branch", flag, branch)
+
+
 async def move_worktree(repo_dir: str, wt_path: str, new_path: str) -> str:
     return await run_git(repo_dir, "worktree", "move", wt_path, new_path)
 

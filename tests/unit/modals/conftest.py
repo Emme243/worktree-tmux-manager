@@ -80,6 +80,26 @@ def mock_remove_worktree():
 
 
 @pytest.fixture
+def mock_delete_branch():
+    """Patch ``delete_branch`` in the remove_worktree module."""
+    with patch(
+        "modules.modals.remove_worktree.delete_branch",
+        new_callable=AsyncMock,
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_run_git():
+    """Patch ``run_git`` in the remove_worktree module."""
+    with patch(
+        "modules.modals.remove_worktree.run_git",
+        new_callable=AsyncMock,
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
 def mock_move_worktree():
     """Patch ``move_worktree`` in the rename_worktree module."""
     with patch(
@@ -108,4 +128,28 @@ def dirty_worktree() -> WorktreeInfo:
         head="abc12345",
         branch="feature/login",
         wt_status=WorkingTreeStatus(staged=1, modified=2),
+    )
+
+
+@pytest.fixture
+def detached_worktree() -> WorktreeInfo:
+    """A worktree with detached HEAD (no branch)."""
+    return WorktreeInfo(
+        path="/home/user/repos/my-detached",
+        head="abc12345",
+        branch="(detached)",
+        is_detached=True,
+        wt_status=WorkingTreeStatus(),
+    )
+
+
+@pytest.fixture
+def locked_worktree() -> WorktreeInfo:
+    """A locked worktree."""
+    return WorktreeInfo(
+        path="/home/user/repos/my-locked",
+        head="abc12345",
+        branch="feature/locked",
+        locked=True,
+        wt_status=WorkingTreeStatus(),
     )

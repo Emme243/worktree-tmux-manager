@@ -3,6 +3,7 @@
 from .models import GitError, WorkingTreeStatus, WorktreeInfo
 from .operations import (
     add_worktree,
+    delete_branch,
     is_git_repo,
     list_branches,
     list_worktrees,
@@ -20,6 +21,7 @@ __all__ = [
     "WorkingTreeStatus",
     "WorktreeInfo",
     "add_worktree",
+    "delete_branch",
     "is_git_repo",
     "list_branches",
     "list_worktrees",

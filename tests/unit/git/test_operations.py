@@ -10,6 +10,7 @@ import pytest
 from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
 from modules.git.operations import (
     add_worktree,
+    delete_branch,
     get_worktree_status,
     is_git_repo,
     list_branches,
@@ -523,6 +524,23 @@ class TestRemoveWorktree:
         mock_run_git.assert_called_once_with(
             "/repo", "worktree", "remove", "--force", "/wt"
         )
+
+
+# ===========================================================================
+# delete_branch — async, mock run_git
+# ===========================================================================
+
+
+class TestDeleteBranch:
+    async def test_safe_delete(self, mock_run_git):
+        mock_run_git.return_value = ""
+        await delete_branch("/repo", "feature/login")
+        mock_run_git.assert_called_once_with("/repo", "branch", "-d", "feature/login")
+
+    async def test_force_delete(self, mock_run_git):
+        mock_run_git.return_value = ""
+        await delete_branch("/repo", "feature/login", force=True)
+        mock_run_git.assert_called_once_with("/repo", "branch", "-D", "feature/login")
 
 
 # ===========================================================================
