@@ -32,7 +32,7 @@ class TestRemoveWorktreeModalCompose:
             await _wait_ready(pilot)
             titles = app.screen.query(".modal-title")
             assert len(titles) >= 1
-            assert "Remove Worktree" in titles.first().render().plain
+            assert "Delete Worktree" in titles.first().render().plain
 
     async def test_renders_confirmation_with_worktree_name(
         self, modal_app, clean_worktree
@@ -50,7 +50,7 @@ class TestRemoveWorktreeModalCompose:
             await _wait_ready(pilot)
             confirm = app.screen.query_one("#confirm-btn", Button)
             cancel = app.screen.query_one("#cancel-btn", Button)
-            assert "Remove" in confirm.label.plain
+            assert "[D]elete" in confirm.label.plain
             assert "Cancel" in cancel.label.plain
 
     async def test_no_warning_for_clean_worktree(self, modal_app, clean_worktree):
@@ -135,6 +135,18 @@ class TestRemoveWorktreeModalConfirm:
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
             await pilot.press("enter")
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            mock_remove_worktree.assert_called_once()
+            assert app.modal_result is True
+
+    async def test_d_key_triggers_confirm(
+        self, modal_app, clean_worktree, mock_remove_worktree
+    ):
+        app = modal_app(RemoveWorktreeModal("/repo", clean_worktree))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            await pilot.press("d")
             await pilot.pause()
             await app.workers.wait_for_complete()
             mock_remove_worktree.assert_called_once()

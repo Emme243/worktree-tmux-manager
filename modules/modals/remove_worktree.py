@@ -17,6 +17,7 @@ class RemoveWorktreeModal(ModalScreen[bool]):
     BINDINGS = [
         Binding("escape", "cancel", "Cancel", show=False),
         Binding("enter", "confirm", "Confirm", show=False),
+        Binding("d", "confirm", "Delete", show=False),
     ]
 
     def __init__(self, repo_dir: str, worktree: WorktreeInfo) -> None:
@@ -26,8 +27,8 @@ class RemoveWorktreeModal(ModalScreen[bool]):
 
     def compose(self):
         with Vertical(id="modal-dialog", classes="modal-destructive"):
-            yield Static("Remove Worktree", classes="modal-title")
-            yield Label(f"Remove worktree [b]{self.worktree.name}[/b]?")
+            yield Static("Delete Worktree", classes="modal-title")
+            yield Label(f"Delete worktree [b]{self.worktree.name}[/b]?")
             if self.worktree.wt_status and not self.worktree.wt_status.is_clean:
                 yield Static(
                     "⚠ This worktree has uncommitted changes "
@@ -36,7 +37,7 @@ class RemoveWorktreeModal(ModalScreen[bool]):
                     classes="modal-warning",
                 )
             with Horizontal(classes="modal-buttons"):
-                yield Button("Remove", variant="error", id="confirm-btn")
+                yield Button("\\[D]elete", variant="error", id="confirm-btn")
                 yield Button("Cancel", id="cancel-btn")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -49,7 +50,7 @@ class RemoveWorktreeModal(ModalScreen[bool]):
     async def _do_remove(self) -> None:
         try:
             await remove_worktree(self.repo_dir, self.worktree.path, force=True)
-            self.app.notify("Worktree removed", severity="error")
+            self.app.notify("Worktree deleted", severity="error")
             self.dismiss(True)
         except GitError as e:
             self.notify(f"Failed: {e}", severity="error")
