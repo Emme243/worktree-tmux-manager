@@ -10,6 +10,7 @@ from textual.app import App
 from modules.app import GitWorktreeApp
 from modules.core.config import AppConfig, ConfigError
 from modules.screens.help_overlay import HelpOverlay
+from modules.screens.project_setup import ProjectSetupScreen
 from modules.screens.worktree_list import WorktreeListScreen
 
 
@@ -44,11 +45,47 @@ class TestGitWorktreeAppSetup:
 
 
 class TestValidateAndStartConfigError:
-    async def test_exits_when_config_missing(self):
+    async def test_pushes_setup_screen_when_config_missing(self):
+        """First-run: missing file → ProjectSetupScreen pushed."""
         app = GitWorktreeApp()
         with patch(
             "modules.app.load_config",
-            side_effect=ConfigError("Config file not found: /fake"),
+            side_effect=ConfigError(
+                "Config file not found: /fake", reason="missing_file"
+            ),
+        ):
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert any(isinstance(s, ProjectSetupScreen) for s in app.screen_stack)
+
+    async def test_pushes_setup_screen_when_repo_path_missing(self):
+        """First-run: missing repo_path key → ProjectSetupScreen pushed."""
+        app = GitWorktreeApp()
+        with patch(
+            "modules.app.load_config",
+            side_effect=ConfigError(
+                "Config file is missing required key 'repo_path': /fake",
+                reason="missing_repo_path",
+            ),
+        ):
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert any(isinstance(s, ProjectSetupScreen) for s in app.screen_stack)
+
+    async def test_exits_when_config_invalid_toml(self):
+        """Invalid TOML → still notifies and exits (not first-run)."""
+        app = GitWorktreeApp()
+        with patch(
+            "modules.app.load_config",
+            side_effect=ConfigError(
+                "Config file is not valid TOML: /fake\n...", reason="invalid_toml"
+            ),
         ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
@@ -56,21 +93,67 @@ class TestValidateAndStartConfigError:
                 await app.workers.wait_for_complete()
                 assert not any(
                     isinstance(s, WorktreeListScreen) for s in app.screen_stack
+                )
+                assert not any(
+                    isinstance(s, ProjectSetupScreen) for s in app.screen_stack
                 )
 
-    async def test_exits_when_config_invalid(self):
+
+# ---------------------------------------------------------------------------
+# _on_first_run_setup callback
+# ---------------------------------------------------------------------------
+
+
+class TestOnFirstRunSetup:
+    async def test_pushes_worktree_list_screen_with_valid_path(self):
+        """Callback with a valid Path pushes WorktreeListScreen."""
         app = GitWorktreeApp()
-        with patch(
-            "modules.app.load_config",
-            side_effect=ConfigError("Config file is not valid TOML: /fake"),
+        repo = Path("/fake/repo")
+        with (
+            patch(
+                "modules.app.load_config",
+                side_effect=ConfigError("", reason="missing_file"),
+            ),
+            patch(
+                "modules.screens.worktree_list.list_worktrees",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "modules.screens.worktree_list.populate_worktree_statuses",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "modules.screens.worktree_list.is_worktree_session_active",
+                return_value=False,
+            ),
         ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await pilot.pause()
                 await app.workers.wait_for_complete()
-                assert not any(
-                    isinstance(s, WorktreeListScreen) for s in app.screen_stack
-                )
+                await pilot.pause()
+                app._on_first_run_setup(repo)
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert any(isinstance(s, WorktreeListScreen) for s in app.screen_stack)
+
+    async def test_exits_when_callback_receives_none(self):
+        """Callback with None exits the app (defensive path)."""
+        app = GitWorktreeApp()
+        with patch(
+            "modules.app.load_config",
+            side_effect=ConfigError("", reason="missing_file"),
+        ):
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                app._on_first_run_setup(None)
+                await pilot.pause()
+                assert app.return_code is not None
 
 
 # ---------------------------------------------------------------------------

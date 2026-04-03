@@ -16,6 +16,10 @@ CONFIG_PATH = Path.home() / ".config" / "tt-tmux" / "config.toml"
 class ConfigError(Exception):
     """Raised when the config file is missing, unreadable, or malformed."""
 
+    def __init__(self, message: str, reason: str) -> None:
+        super().__init__(message)
+        self.reason = reason
+
 
 @dataclass
 class AppConfig:
@@ -40,17 +44,23 @@ def load_config(path: Path | None = None) -> AppConfig:
     if not path.exists():
         raise ConfigError(
             f"Config file not found: {path}\n"
-            "Create it at that path. See README for the required format."
+            "Create it at that path. See README for the required format.",
+            reason="missing_file",
         )
 
     try:
         with path.open("rb") as fh:
             data = tomllib.load(fh)
     except tomllib.TOMLDecodeError as exc:
-        raise ConfigError(f"Config file is not valid TOML: {path}\n{exc}") from exc
+        raise ConfigError(
+            f"Config file is not valid TOML: {path}\n{exc}", reason="invalid_toml"
+        ) from exc
 
     if "repo_path" not in data:
-        raise ConfigError(f"Config file is missing required key 'repo_path': {path}")
+        raise ConfigError(
+            f"Config file is missing required key 'repo_path': {path}",
+            reason="missing_repo_path",
+        )
 
     return AppConfig(
         repo_path=Path(data["repo_path"]).expanduser(),

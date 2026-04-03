@@ -25,11 +25,23 @@ class TestConfigError:
         assert issubclass(ConfigError, Exception)
 
     def test_preserves_message(self):
-        assert str(ConfigError("boom")) == "boom"
+        assert str(ConfigError("boom", reason="missing_file")) == "boom"
 
     def test_can_be_raised_and_caught(self):
         with pytest.raises(ConfigError):
-            raise ConfigError("test")
+            raise ConfigError("test", reason="missing_file")
+
+    def test_reason_attribute_stored(self):
+        exc = ConfigError("msg", reason="missing_file")
+        assert exc.reason == "missing_file"
+
+    def test_reason_invalid_toml(self):
+        exc = ConfigError("msg", reason="invalid_toml")
+        assert exc.reason == "invalid_toml"
+
+    def test_reason_missing_repo_path(self):
+        exc = ConfigError("msg", reason="missing_repo_path")
+        assert exc.reason == "missing_repo_path"
 
 
 # ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 from textual import work
 from textual.app import App
@@ -10,6 +11,7 @@ from textual.binding import Binding
 
 from modules.core.config import ConfigError, load_config
 from modules.screens.help_overlay import HelpOverlay
+from modules.screens.project_setup import ProjectSetupScreen
 from modules.screens.worktree_list import WorktreeListScreen
 
 
@@ -31,8 +33,14 @@ class GitWorktreeApp(App):
         try:
             config = load_config()
         except ConfigError as exc:
-            self.notify(str(exc), severity="error", timeout=10)
-            self.exit()
+            if exc.reason in ("missing_file", "missing_repo_path"):
+                self.push_screen(
+                    ProjectSetupScreen(mode="first_run"),
+                    callback=self._on_first_run_setup,
+                )
+            else:
+                self.notify(str(exc), severity="error", timeout=10)
+                self.exit()
             return
 
         repo = str(config.repo_path)
@@ -58,6 +66,12 @@ class GitWorktreeApp(App):
             return
 
         self.push_screen(WorktreeListScreen(repo))
+
+    def _on_first_run_setup(self, result: Path | None) -> None:
+        if result is None:
+            self.exit()
+            return
+        self.push_screen(WorktreeListScreen(str(result)))
 
     def action_toggle_dark(self) -> None:
         self.theme = (
