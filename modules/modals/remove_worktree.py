@@ -30,7 +30,6 @@ class RemoveWorktreeModal(ModalScreen[RemoveWorktreeResult | bool]):
         Binding("escape", "cancel", "Cancel", show=False),
         Binding("q", "cancel", "Cancel", show=False),
         Binding("n", "cancel", "Cancel", show=False),
-        Binding("d", "confirm", "Delete", show=False),
         Binding("y", "confirm", "Delete", show=False),
     ]
 

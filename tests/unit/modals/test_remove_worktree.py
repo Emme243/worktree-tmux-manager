@@ -332,18 +332,6 @@ class TestRemoveWorktreeModalConfirm:
             mock_remove_worktree.assert_called_once()
             mock_delete_branch.assert_not_called()
 
-    async def test_d_key_triggers_confirm(
-        self, modal_app, clean_worktree, mock_remove_worktree, mock_delete_branch
-    ):
-        app = modal_app(RemoveWorktreeModal("/repo", clean_worktree))
-        async with app.run_test(size=(100, 40)) as pilot:
-            await _wait_ready(pilot)
-            await pilot.press("d")
-            await pilot.pause()
-            await app.workers.wait_for_complete()
-            mock_remove_worktree.assert_called_once()
-            assert isinstance(app.modal_result, RemoveWorktreeResult)
-
     async def test_y_key_triggers_confirm(
         self, modal_app, clean_worktree, mock_remove_worktree, mock_delete_branch
     ):
