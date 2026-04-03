@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from rich.text import Text
 from textual.widgets import Button, DataTable, Footer, Input, Static
 
+from modules.core.config import AppConfig, ProjectConfig
+from modules.core.state import AppState
 from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
 from modules.screens.worktree_list import WorktreeListScreen
 from modules.tmux import TmuxError
@@ -19,8 +22,17 @@ from .conftest import ScreenTestApp, wait_ready
 # ---------------------------------------------------------------------------
 
 
+def _make_config(repo_dir: str = "/home/user/repos/project") -> AppConfig:
+    return AppConfig(
+        repo_path=Path(repo_dir),
+        projects=[ProjectConfig(path=Path(repo_dir))],
+    )
+
+
 def _make_app(repo_dir: str = "/home/user/repos/project") -> ScreenTestApp:
-    return ScreenTestApp(lambda: WorktreeListScreen(repo_dir=repo_dir))
+    return ScreenTestApp(
+        lambda: WorktreeListScreen(repo_dir=repo_dir, config=_make_config(repo_dir))
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -30,16 +42,21 @@ def _make_app(repo_dir: str = "/home/user/repos/project") -> ScreenTestApp:
 
 class TestWorktreeListScreenInit:
     def test_stores_repo_dir(self):
-        screen = WorktreeListScreen(repo_dir="/repo")
+        screen = WorktreeListScreen(repo_dir="/repo", config=_make_config("/repo"))
         assert screen.repo_dir == "/repo"
 
     def test_initial_worktrees_empty(self):
-        screen = WorktreeListScreen(repo_dir="/repo")
+        screen = WorktreeListScreen(repo_dir="/repo", config=_make_config("/repo"))
         assert screen.worktrees == []
 
     def test_initial_tmux_statuses_empty(self):
-        screen = WorktreeListScreen(repo_dir="/repo")
+        screen = WorktreeListScreen(repo_dir="/repo", config=_make_config("/repo"))
         assert screen._tmux_statuses == {}
+
+    def test_stores_config(self):
+        config = _make_config("/repo")
+        screen = WorktreeListScreen(repo_dir="/repo", config=config)
+        assert screen._config is config
 
 
 # ---------------------------------------------------------------------------
@@ -754,3 +771,119 @@ class TestWorktreeListScreenStyledName:
                 styled = screen._styled_name(screen.worktrees[0])
                 assert isinstance(styled, Text)
                 assert styled.plain == "project"
+
+
+# ---------------------------------------------------------------------------
+# In-app project switching
+# ---------------------------------------------------------------------------
+
+
+class TestWorktreeListScreenSwitchProject:
+    def test_p_binding_declared(self):
+        keys = {b.key: b.action for b in WorktreeListScreen.BINDINGS}
+        assert "p" in keys
+        assert keys["p"] == "switch_project"
+
+    async def test_p_key_opens_picker(self, all_screen_mocks):
+        from modules.screens.project_picker import ProjectPickerScreen
+
+        app = _make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            table = app.screen.query_one("#wt-table", VimDataTable)
+            table.focus()
+            with patch.object(app, "push_screen") as mock_push:
+                await pilot.press("p")
+                await pilot.pause()
+                mock_push.assert_called_once()
+                assert isinstance(mock_push.call_args[0][0], ProjectPickerScreen)
+
+    async def test_picker_receives_current_config(self, all_screen_mocks):
+        from modules.screens.project_picker import ProjectPickerScreen
+
+        app = _make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            screen = app.screen
+            with patch.object(app, "push_screen") as mock_push:
+                screen.action_switch_project()
+                pushed = mock_push.call_args[0][0]
+                assert isinstance(pushed, ProjectPickerScreen)
+                assert pushed._config is screen._config
+
+    async def test_on_project_switched_updates_repo_dir(self, all_screen_mocks):
+        app = _make_app("/home/user/repos/project")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            new_project = ProjectConfig(path=Path("/home/user/repos/new-project"))
+            app.screen._on_project_switched(new_project)
+            assert app.screen.repo_dir == "/home/user/repos/new-project"
+
+    async def test_on_project_switched_updates_title(self, all_screen_mocks):
+        app = _make_app("/home/user/repos/project")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            new_project = ProjectConfig(path=Path("/home/user/repos/new-project"))
+            app.screen._on_project_switched(new_project)
+            await pilot.pause()
+            title = app.screen.query_one("#wt-title", Static)
+            assert "/home/user/repos/new-project" in title.render().plain
+
+    async def test_on_project_switched_triggers_reload(self, all_screen_mocks):
+        app = _make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            all_screen_mocks["list_worktrees"].reset_mock()
+            new_project = ProjectConfig(path=Path("/home/user/repos/new-project"))
+            app.screen._on_project_switched(new_project)
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            all_screen_mocks["list_worktrees"].assert_called_once_with(
+                "/home/user/repos/new-project"
+            )
+
+    async def test_on_project_switched_saves_state(self, all_screen_mocks):
+        app = _make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            new_project = ProjectConfig(path=Path("/home/user/repos/new-project"))
+            with patch("modules.screens.worktree_list.save_state") as mock_save:
+                app.screen._on_project_switched(new_project)
+                mock_save.assert_called_once_with(
+                    AppState(last_project_path=Path("/home/user/repos/new-project"))
+                )
+
+    async def test_on_project_switched_none_does_nothing(self, all_screen_mocks):
+        app = _make_app("/home/user/repos/project")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            original_dir = app.screen.repo_dir
+            all_screen_mocks["list_worktrees"].reset_mock()
+            with patch("modules.screens.worktree_list.save_state") as mock_save:
+                app.screen._on_project_switched(None)
+                await pilot.pause()
+                assert app.screen.repo_dir == original_dir
+                all_screen_mocks["list_worktrees"].assert_not_called()
+                mock_save.assert_not_called()
+
+    async def test_switch_project_works_with_single_project_config(
+        self, all_screen_mocks
+    ):
+        from modules.screens.project_picker import ProjectPickerScreen
+
+        single_config = AppConfig(
+            repo_path=Path("/solo"),
+            projects=[ProjectConfig(path=Path("/solo"))],
+        )
+        app = ScreenTestApp(
+            lambda: WorktreeListScreen(repo_dir="/solo", config=single_config)
+        )
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            table = app.screen.query_one("#wt-table", VimDataTable)
+            table.focus()
+            with patch.object(app, "push_screen") as mock_push:
+                await pilot.press("p")
+                await pilot.pause()
+                mock_push.assert_called_once()
+                assert isinstance(mock_push.call_args[0][0], ProjectPickerScreen)

@@ -34,6 +34,7 @@ class GitWorktreeApp(App):
     async def _validate_and_start(self) -> None:
         try:
             config = load_config()
+            self._config = config
         except ConfigError as exc:
             if exc.reason in ("missing_file", "missing_repo_path"):
                 self.push_screen(
@@ -71,7 +72,7 @@ class GitWorktreeApp(App):
                 return
 
             save_state(AppState(last_project_path=config.repo_path))
-            self.push_screen(WorktreeListScreen(repo))
+            self.push_screen(WorktreeListScreen(repo, self._config))
             return
 
         # Multiple projects — check if last_project_path shortcuts to a known project
@@ -82,7 +83,7 @@ class GitWorktreeApp(App):
             )
             if matched is not None:
                 save_state(AppState(last_project_path=matched.path))
-                self.push_screen(WorktreeListScreen(str(matched.path)))
+                self.push_screen(WorktreeListScreen(str(matched.path), self._config))
                 return
 
         self.push_screen(
@@ -95,14 +96,15 @@ class GitWorktreeApp(App):
             self.exit()
             return
         save_state(AppState(last_project_path=result.path))
-        self.push_screen(WorktreeListScreen(str(result.path)))
+        self.push_screen(WorktreeListScreen(str(result.path), self._config))
 
     def _on_first_run_setup(self, result: Path | None) -> None:
         if result is None:
             self.exit()
             return
         save_state(AppState(last_project_path=result))
-        self.push_screen(WorktreeListScreen(str(result)))
+        config = load_config()
+        self.push_screen(WorktreeListScreen(str(result), config))
 
     def action_toggle_dark(self) -> None:
         self.theme = (

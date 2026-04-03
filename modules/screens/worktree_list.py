@@ -11,6 +11,8 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
 from textual.widgets import Button, DataTable, Footer, Header, Static
 
+from modules.core.config import AppConfig, ProjectConfig
+from modules.core.state import AppState, save_state
 from modules.git import (
     GitError,
     WorktreeInfo,
@@ -40,11 +42,13 @@ class WorktreeListScreen(Screen):
         Binding("n", "rename", "Rename", show=False),
         Binding("r", "refresh", "Refresh"),
         Binding("slash", "search", "Search", key_display="/"),
+        Binding("p", "switch_project", "Switch project"),
     ]
 
-    def __init__(self, repo_dir: str) -> None:
+    def __init__(self, repo_dir: str, config: AppConfig) -> None:
         super().__init__()
         self.repo_dir = repo_dir
+        self._config = config
         self.worktrees: list[WorktreeInfo] = []
         self._tmux_statuses: dict[str, bool] = {}
 
@@ -190,6 +194,22 @@ class WorktreeListScreen(Screen):
             )
 
     def action_refresh(self) -> None:
+        self.refresh_worktrees()
+
+    def action_switch_project(self) -> None:
+        from modules.screens.project_picker import ProjectPickerScreen
+
+        self.app.push_screen(
+            ProjectPickerScreen(self._config),
+            callback=self._on_project_switched,
+        )
+
+    def _on_project_switched(self, result: ProjectConfig | None) -> None:
+        if result is None:
+            return
+        self.repo_dir = str(result.path)
+        save_state(AppState(last_project_path=result.path))
+        self.query_one("#wt-title", Static).update(f"Worktrees for: {self.repo_dir}")
         self.refresh_worktrees()
 
     # ── Vim: Search & Help ──

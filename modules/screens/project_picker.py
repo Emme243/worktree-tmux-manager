@@ -134,7 +134,7 @@ class ProjectPickerScreen(ModalScreen[ProjectConfig | None]):
             self.dismiss(self._config.projects[row_idx])
 
     def action_exit_app(self) -> None:
-        self.app.exit()
+        self.dismiss(None)
 
     def action_add_project(self) -> None:
         from modules.screens.project_setup import ProjectSetupScreen

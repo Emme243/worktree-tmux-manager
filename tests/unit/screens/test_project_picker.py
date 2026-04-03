@@ -260,12 +260,12 @@ class TestProjectPickerScreenDelete:
 
 
 # ---------------------------------------------------------------------------
-# Cancel — Escape exits app
+# Cancel — Escape dismisses with None (caller decides whether to exit)
 # ---------------------------------------------------------------------------
 
 
 class TestProjectPickerScreenCancel:
-    async def test_escape_exits_app(self, sample_projects):
+    async def test_escape_dismisses_with_none(self, sample_projects):
         config = _make_config(sample_projects)
         screen = ProjectPickerScreen(config)
         async with ProjectPickerTestApp(screen).run_test(size=(100, 40)) as pilot:
@@ -273,7 +273,7 @@ class TestProjectPickerScreenCancel:
             await _wait_ready(pilot, app)
             await pilot.press("escape")
             await pilot.pause()
-            assert app.return_code is not None
+            assert app.modal_result is None
 
 
 # ---------------------------------------------------------------------------

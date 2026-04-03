@@ -39,7 +39,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M1B-07 · Last-used project persistence** — New `modules/core/state.py` with `AppState(last_project_path: Path | None)`, `load_state() -> AppState`, and `save_state(state: AppState) -> None`. State file: `~/.local/share/tt-tmux/state.json` (create parent dirs on write). Startup logic in `app.py`: if one project → go straight to worktree list; if multiple projects and `last_project_path` matches a configured project → go straight to that worktree list (skip picker); otherwise → show `ProjectPickerScreen`. Save `last_project_path` whenever a project is opened. Tests: round-trip JSON, missing file returns `AppState(last_project_path=None)`, stale path (removed project) falls back to picker.
 
-- [ ] **M1B-08 · In-app project switching** — Add `p` keybinding to `WorktreeListScreen` (`Binding("p", "switch_project", "Switch project")`). Action pushes `ProjectPickerScreen` as a modal (via `push_screen`). On dismiss with a `ProjectConfig`, reload the screen for the new project (update `self.repo_dir`, re-run data load, update title). Also calls `save_state` to update last-used project. Tests: `p` opens picker, dismissing with a project updates `repo_dir` and triggers reload.
+- [x] **M1B-08 · In-app project switching** — Add `p` keybinding to `WorktreeListScreen` (`Binding("p", "switch_project", "Switch project")`). Action pushes `ProjectPickerScreen` as a modal (via `push_screen`). On dismiss with a `ProjectConfig`, reload the screen for the new project (update `self.repo_dir`, re-run data load, update title). Also calls `save_state` to update last-used project. Tests: `p` opens picker, dismissing with a project updates `repo_dir` and triggers reload.
 
 ---
 

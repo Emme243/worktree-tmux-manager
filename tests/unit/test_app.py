@@ -131,7 +131,7 @@ class TestOnFirstRunSetup:
         with (
             patch(
                 "modules.app.load_config",
-                side_effect=ConfigError("", reason="missing_file"),
+                side_effect=[ConfigError("", reason="missing_file"), _make_config()],
             ),
             patch("modules.app.load_state", return_value=AppState()),
             patch("modules.app.save_state"),
@@ -480,7 +480,10 @@ class TestOnFirstRunSetupSavesState:
         with (
             patch(
                 "modules.app.load_config",
-                side_effect=ConfigError("", reason="missing_file"),
+                side_effect=[
+                    ConfigError("", reason="missing_file"),
+                    _make_config("/new/repo"),
+                ],
             ),
             patch("modules.app.load_state", return_value=AppState()),
             patch("modules.app.save_state") as mock_save,
