@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from textual.app import App
-from textual.widgets import Static
 
-from modules.screens.help_overlay import HELP_TEXT, HelpOverlay
+from modules.screens.help_overlay import HELP_SECTIONS, HelpOverlay
 
 # ---------------------------------------------------------------------------
 # Host app for testing the modal overlay
@@ -49,29 +48,31 @@ class TestHelpOverlayCompose:
         app = HelpOverlayApp()
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
-            content = app.screen.query_one("#help-content", Static)
-            rendered = content.render().plain
-            assert "Create worktree" in rendered
-            assert "Delete worktree" in rendered
-            assert "Rename worktree" in rendered
+            descs = app.screen.query(".help-desc")
+            rendered = [d.render().plain for d in descs]
+            assert any("Create worktree" in t for t in rendered)
+            assert any("Delete worktree" in t for t in rendered)
+            assert any("Rename worktree" in t for t in rendered)
 
     async def test_help_content_contains_navigation_keys(self):
         app = HelpOverlayApp()
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
-            content = app.screen.query_one("#help-content", Static)
-            rendered = content.render().plain
-            assert "j / k" in rendered
-            assert "G" in rendered
+            keys = app.screen.query(".help-key")
+            rendered = [k.render().plain for k in keys]
+            assert any("j / k" in t for t in rendered)
+            assert any("G" in t for t in rendered)
 
     async def test_help_content_contains_search_keys(self):
         app = HelpOverlayApp()
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
-            content = app.screen.query_one("#help-content", Static)
-            rendered = content.render().plain
-            assert "/" in rendered
-            assert "Open search bar" in rendered
+            keys = app.screen.query(".help-key")
+            descs = app.screen.query(".help-desc")
+            key_texts = [k.render().plain for k in keys]
+            desc_texts = [d.render().plain for d in descs]
+            assert any("/" in t for t in key_texts)
+            assert any("Open search bar" in t for t in desc_texts)
 
     async def test_help_dialog_container_exists(self):
         app = HelpOverlayApp()
@@ -79,6 +80,18 @@ class TestHelpOverlayCompose:
             await _wait_ready(pilot)
             dialog = app.screen.query_one("#help-dialog")
             assert dialog is not None
+
+    async def test_section_titles_rendered(self):
+        app = HelpOverlayApp()
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            titles = app.screen.query(".help-section-title")
+            rendered = [t.render().plain for t in titles]
+            assert any("Navigation" in t for t in rendered)
+            assert any("Worktree List" in t for t in rendered)
+            assert any("Search" in t for t in rendered)
+            assert any("Global" in t for t in rendered)
+            assert any("Modals" in t for t in rendered)
 
 
 # ---------------------------------------------------------------------------
@@ -113,18 +126,26 @@ class TestHelpOverlayDismiss:
 
 
 # ---------------------------------------------------------------------------
-# HELP_TEXT constant
+# HELP_SECTIONS data structure
 # ---------------------------------------------------------------------------
 
 
-class TestHelpText:
-    def test_help_text_is_non_empty_string(self):
-        assert isinstance(HELP_TEXT, str)
-        assert len(HELP_TEXT) > 0
+class TestHelpSections:
+    def test_help_sections_is_non_empty(self):
+        assert isinstance(HELP_SECTIONS, list)
+        assert len(HELP_SECTIONS) > 0
 
-    def test_help_text_contains_all_sections(self):
-        assert "Navigation" in HELP_TEXT
-        assert "Worktree List" in HELP_TEXT
-        assert "Search" in HELP_TEXT
-        assert "Global" in HELP_TEXT
-        assert "Modals" in HELP_TEXT
+    def test_help_sections_contains_all_sections(self):
+        section_names = [name for name, _ in HELP_SECTIONS]
+        assert "Navigation" in section_names
+        assert "Worktree List" in section_names
+        assert "Search" in section_names
+        assert "Global" in section_names
+        assert "Modals" in section_names
+
+    def test_each_section_has_bindings(self):
+        for name, bindings in HELP_SECTIONS:
+            assert len(bindings) > 0, f"Section '{name}' has no bindings"
+            for key, desc in bindings:
+                assert isinstance(key, str) and len(key) > 0
+                assert isinstance(desc, str) and len(desc) > 0
