@@ -51,7 +51,7 @@ class TestRemoveWorktreeModalCompose:
             confirm = app.screen.query_one("#confirm-btn", Button)
             cancel = app.screen.query_one("#cancel-btn", Button)
             assert "[D]elete" in confirm.label.plain
-            assert "Cancel" in cancel.label.plain
+            assert "N" in cancel.label.plain
 
     async def test_no_static_warning_for_clean_worktree(
         self, modal_app, clean_worktree
@@ -226,6 +226,16 @@ class TestRemoveWorktreeModalCancel:
             await pilot.pause()
             assert app.modal_result is False
 
+    async def test_n_dismisses_false(
+        self, modal_app, clean_worktree, mock_remove_worktree, mock_delete_branch
+    ):
+        app = modal_app(RemoveWorktreeModal("/repo", clean_worktree))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            await pilot.press("n")
+            await pilot.pause()
+            assert app.modal_result is False
+
 
 # ---------------------------------------------------------------------------
 # Confirm removal
@@ -329,6 +339,18 @@ class TestRemoveWorktreeModalConfirm:
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
             await pilot.press("d")
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            mock_remove_worktree.assert_called_once()
+            assert isinstance(app.modal_result, RemoveWorktreeResult)
+
+    async def test_y_key_triggers_confirm(
+        self, modal_app, clean_worktree, mock_remove_worktree, mock_delete_branch
+    ):
+        app = modal_app(RemoveWorktreeModal("/repo", clean_worktree))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            await pilot.press("y")
             await pilot.pause()
             await app.workers.wait_for_complete()
             mock_remove_worktree.assert_called_once()

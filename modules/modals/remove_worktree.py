@@ -29,7 +29,9 @@ class RemoveWorktreeModal(ModalScreen[RemoveWorktreeResult | bool]):
     BINDINGS = [
         Binding("escape", "cancel", "Cancel", show=False),
         Binding("q", "cancel", "Cancel", show=False),
+        Binding("n", "cancel", "Cancel", show=False),
         Binding("d", "confirm", "Delete", show=False),
+        Binding("y", "confirm", "Delete", show=False),
     ]
 
     def __init__(self, repo_dir: str, worktree: WorktreeInfo) -> None:
@@ -65,7 +67,7 @@ class RemoveWorktreeModal(ModalScreen[RemoveWorktreeResult | bool]):
             yield Static("", id="dynamic-warning", classes="modal-warning")
             with Horizontal(classes="modal-buttons"):
                 yield Button("\\[D]elete", variant="error", id="confirm-btn")
-                yield Button("Cancel", id="cancel-btn")
+                yield Button("\\[N]o", id="cancel-btn")
 
     def on_mount(self) -> None:
         self._update_dynamic_warning()
