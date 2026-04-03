@@ -167,3 +167,39 @@ async def wait_ready(pilot, app):
     await pilot.pause()
     await pilot.pause()
     await app.workers.wait_for_complete()
+
+
+# ---------------------------------------------------------------------------
+# ProjectSetupScreen fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def mock_save_config():
+    """Patch ``save_config`` in the project_setup module."""
+    with patch("modules.screens.project_setup.save_config") as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_is_git_repo():
+    """Patch ``is_git_repo`` in the project_setup module — returns True by default."""
+    with patch(
+        "modules.screens.project_setup.is_git_repo",
+        new_callable=AsyncMock,
+        return_value=True,
+    ) as mock:
+        yield mock
+
+
+@pytest.fixture
+def git_repo_dir(tmp_path: Path) -> Path:
+    """A temp directory with a ``.git`` subdirectory (simulates a git repo)."""
+    (tmp_path / ".git").mkdir()
+    return tmp_path
+
+
+@pytest.fixture
+def non_git_dir(tmp_path: Path) -> Path:
+    """A temp directory without a ``.git`` subdirectory."""
+    return tmp_path
