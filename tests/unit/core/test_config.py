@@ -1,4 +1,4 @@
-"""Tests for modules.core.config — AppConfig, ConfigError, load_config."""
+"""Tests for modules.core.config — AppConfig, ConfigError, load_config, save_config."""
 
 from __future__ import annotations
 
@@ -7,7 +7,13 @@ from unittest.mock import patch
 
 import pytest
 
-from modules.core.config import CONFIG_PATH, AppConfig, ConfigError, load_config
+from modules.core.config import (
+    CONFIG_PATH,
+    AppConfig,
+    ConfigError,
+    load_config,
+    save_config,
+)
 
 # ---------------------------------------------------------------------------
 # ConfigError
@@ -210,3 +216,60 @@ class TestLoadConfigDefaultPath:
         with patch("modules.core.config.CONFIG_PATH", config_file):
             cfg = load_config()
         assert cfg.repo_path == Path("/default/repo")
+
+
+# ---------------------------------------------------------------------------
+# save_config
+# ---------------------------------------------------------------------------
+
+
+class TestSaveConfig:
+    def test_file_is_written(self, tmp_path):
+        path = tmp_path / "config.toml"
+        save_config(AppConfig(repo_path=Path("/some/repo")), path)
+        assert path.exists()
+
+    def test_repo_path_round_trips(self, tmp_path):
+        path = tmp_path / "config.toml"
+        save_config(AppConfig(repo_path=Path("/some/repo")), path)
+        cfg = load_config(path)
+        assert cfg.repo_path == Path("/some/repo")
+
+    def test_all_optional_fields_round_trip(self, tmp_path):
+        path = tmp_path / "config.toml"
+        original = AppConfig(
+            repo_path=Path("/r"),
+            linear_api_key="lin_abc",
+            linear_team_id="team1",
+            github_token="ghp_xyz",
+            github_repo="owner/repo",
+        )
+        save_config(original, path)
+        cfg = load_config(path)
+        assert cfg.linear_api_key == "lin_abc"
+        assert cfg.linear_team_id == "team1"
+        assert cfg.github_token == "ghp_xyz"
+        assert cfg.github_repo == "owner/repo"
+
+    def test_none_optional_fields_are_omitted(self, tmp_path):
+        path = tmp_path / "config.toml"
+        save_config(AppConfig(repo_path=Path("/r")), path)
+        content = path.read_text(encoding="utf-8")
+        assert "linear_api_key" not in content
+        assert "github_token" not in content
+
+    def test_creates_parent_directories(self, tmp_path):
+        path = tmp_path / "nested" / "dirs" / "config.toml"
+        save_config(AppConfig(repo_path=Path("/r")), path)
+        assert path.exists()
+
+    def test_no_tmp_file_left_on_success(self, tmp_path):
+        path = tmp_path / "config.toml"
+        save_config(AppConfig(repo_path=Path("/r")), path)
+        assert not path.with_name(path.name + ".tmp").exists()
+
+    def test_uses_default_config_path(self, tmp_path):
+        config_file = tmp_path / "config.toml"
+        with patch("modules.core.config.CONFIG_PATH", config_file):
+            save_config(AppConfig(repo_path=Path("/r")))
+        assert config_file.exists()
