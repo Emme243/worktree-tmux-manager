@@ -11,6 +11,7 @@ from modules.core.config import (
     CONFIG_PATH,
     AppConfig,
     ConfigError,
+    ProjectConfig,
     load_config,
     save_config,
 )
@@ -285,3 +286,161 @@ class TestSaveConfig:
         with patch("modules.core.config.CONFIG_PATH", config_file):
             save_config(AppConfig(repo_path=Path("/r")))
         assert config_file.exists()
+
+
+# ---------------------------------------------------------------------------
+# ProjectConfig
+# ---------------------------------------------------------------------------
+
+
+class TestProjectConfigDefaults:
+    def test_name_defaults_to_path_basename(self):
+        cfg = ProjectConfig(path=Path("/some/repo/my-project"))
+        assert cfg.name == "my-project"
+
+    def test_explicit_name_is_preserved(self):
+        cfg = ProjectConfig(path=Path("/some/repo"), name="Custom Name")
+        assert cfg.name == "Custom Name"
+
+    def test_empty_string_name_derives_from_path(self):
+        cfg = ProjectConfig(path=Path("/repos/alpha"), name="")
+        assert cfg.name == "alpha"
+
+    def test_path_is_path_object(self):
+        cfg = ProjectConfig(path=Path("/some/repo"))
+        assert isinstance(cfg.path, Path)
+
+
+# ---------------------------------------------------------------------------
+# load_config — migration from old repo_path format
+# ---------------------------------------------------------------------------
+
+
+class TestLoadConfigMigration:
+    def _write(self, tmp_path, content: str) -> Path:
+        p = tmp_path / "config.toml"
+        p.write_text(content, encoding="utf-8")
+        return p
+
+    def test_old_format_populates_projects(self, tmp_path):
+        path = self._write(tmp_path, 'repo_path = "/some/repo"\n')
+        cfg = load_config(path)
+        assert len(cfg.projects) == 1
+        assert cfg.projects[0].path == Path("/some/repo")
+
+    def test_old_format_repo_path_still_accessible(self, tmp_path):
+        path = self._write(tmp_path, 'repo_path = "/some/repo"\n')
+        cfg = load_config(path)
+        assert cfg.repo_path == Path("/some/repo")
+
+    def test_old_format_project_name_derived_from_path(self, tmp_path):
+        path = self._write(tmp_path, 'repo_path = "/some/repo"\n')
+        cfg = load_config(path)
+        assert cfg.projects[0].name == "repo"
+
+    def test_old_format_returns_app_config(self, tmp_path):
+        path = self._write(tmp_path, 'repo_path = "/some/repo"\n')
+        assert isinstance(load_config(path), AppConfig)
+
+
+# ---------------------------------------------------------------------------
+# load_config — new [[projects]] format
+# ---------------------------------------------------------------------------
+
+
+class TestLoadConfigMultiProject:
+    def _write(self, tmp_path, content: str) -> Path:
+        p = tmp_path / "config.toml"
+        p.write_text(content, encoding="utf-8")
+        return p
+
+    def test_new_format_loads_both_projects(self, tmp_path):
+        content = (
+            "[[projects]]\n"
+            'path = "/repos/alpha"\n'
+            'name = "alpha"\n'
+            "\n"
+            "[[projects]]\n"
+            'path = "/repos/beta"\n'
+            'name = "beta"\n'
+        )
+        path = self._write(tmp_path, content)
+        cfg = load_config(path)
+        assert len(cfg.projects) == 2
+
+    def test_new_format_repo_path_is_first_project(self, tmp_path):
+        content = (
+            "[[projects]]\n"
+            'path = "/repos/alpha"\n'
+            'name = "alpha"\n'
+            "\n"
+            "[[projects]]\n"
+            'path = "/repos/beta"\n'
+            'name = "beta"\n'
+        )
+        path = self._write(tmp_path, content)
+        cfg = load_config(path)
+        assert cfg.repo_path == Path("/repos/alpha")
+
+    def test_new_format_project_paths_are_path_objects(self, tmp_path):
+        content = '[[projects]]\npath = "/repos/alpha"\nname = "alpha"\n'
+        path = self._write(tmp_path, content)
+        cfg = load_config(path)
+        assert isinstance(cfg.projects[0].path, Path)
+
+    def test_new_format_omitted_name_derives_from_path(self, tmp_path):
+        content = '[[projects]]\npath = "/repos/my-project"\n'
+        path = self._write(tmp_path, content)
+        cfg = load_config(path)
+        assert cfg.projects[0].name == "my-project"
+
+
+# ---------------------------------------------------------------------------
+# save_config — new [[projects]] format
+# ---------------------------------------------------------------------------
+
+
+class TestSaveConfigProjectFormat:
+    def test_no_repo_path_key_in_output(self, tmp_path):
+        path = tmp_path / "config.toml"
+        save_config(AppConfig(repo_path=Path("/some/repo")), path)
+        content = path.read_text(encoding="utf-8")
+        assert "repo_path" not in content
+
+    def test_projects_section_written(self, tmp_path):
+        path = tmp_path / "config.toml"
+        save_config(AppConfig(repo_path=Path("/some/repo")), path)
+        content = path.read_text(encoding="utf-8")
+        assert "projects" in content
+
+    def test_single_project_round_trips(self, tmp_path):
+        path = tmp_path / "config.toml"
+        project = ProjectConfig(path=Path("/repos/alpha"), name="alpha")
+        save_config(AppConfig(repo_path=Path("/repos/alpha"), projects=[project]), path)
+        cfg = load_config(path)
+        assert cfg.projects[0].path == Path("/repos/alpha")
+        assert cfg.projects[0].name == "alpha"
+
+    def test_multi_project_round_trips(self, tmp_path):
+        path = tmp_path / "config.toml"
+        projects = [
+            ProjectConfig(path=Path("/repos/alpha"), name="alpha"),
+            ProjectConfig(path=Path("/repos/beta"), name="beta"),
+        ]
+        save_config(AppConfig(repo_path=Path("/repos/alpha"), projects=projects), path)
+        cfg = load_config(path)
+        assert len(cfg.projects) == 2
+        assert cfg.projects[1].path == Path("/repos/beta")
+
+    def test_name_round_trips(self, tmp_path):
+        path = tmp_path / "config.toml"
+        project = ProjectConfig(path=Path("/repos/alpha"), name="My Alpha")
+        save_config(AppConfig(repo_path=Path("/repos/alpha"), projects=[project]), path)
+        cfg = load_config(path)
+        assert cfg.projects[0].name == "My Alpha"
+
+    def test_empty_projects_falls_back_to_repo_path(self, tmp_path):
+        path = tmp_path / "config.toml"
+        save_config(AppConfig(repo_path=Path("/repos/fallback")), path)
+        cfg = load_config(path)
+        assert cfg.projects[0].path == Path("/repos/fallback")
