@@ -88,6 +88,9 @@ When starting a new session, read `ISSUES.md` first to know what's next. Mark is
 - `PyGithub` (GitHub REST client): https://github.com/PyGithub/PyGithub
 - `httpx` (async HTTP, used with gql): https://github.com/encode/httpx
 
+### Testing
+- Textual testing guide (Pilot, run_test, snapshot testing): https://textual.textualize.io/guide/testing/
+
 ## Architecture
 Below is a high-level design and architecture outline for your terminal dashboard app
 that orchestrates worktrees, tmux sessions, integrated development tools (like your code editor, background code assistant,
