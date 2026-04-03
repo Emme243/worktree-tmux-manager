@@ -15,9 +15,9 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M1-03 · Domain models — PullRequest & Comment** — Create `modules/github/models.py` with `PullRequest` (`number`, `title`, `state`, `url`, `head_branch`, `base_branch`, `merged`, `draft`, `unread_comment_count`, `updated_at`) and `Comment` (`id`, `body`, `author`, `created_at`, `is_read`).
 
-- [ ] **M1-04 · Branch ↔ Ticket mapping** — A `WorktreeInfo` needs to know its associated Linear ticket (if any). Strategy: match `WorktreeInfo.branch` against `Ticket.branch_name`. Implement `resolve_ticket(worktree: WorktreeInfo, tickets: list[Ticket]) -> Ticket | None` in a new `modules/core/mapping.py`. Also store the resolved mapping in an in-memory registry so it doesn't recompute on every render.
+- [x] **M1-04 · Branch ↔ Ticket mapping** — A `WorktreeInfo` needs to know its associated Linear ticket (if any). Strategy: match `WorktreeInfo.branch` against `Ticket.branch_name`. Implement `resolve_ticket(worktree: WorktreeInfo, tickets: list[Ticket]) -> Ticket | None` in a new `modules/core/mapping.py`. Also store the resolved mapping in an in-memory registry so it doesn't recompute on every render.
 
-- [ ] **M1-05 · Worktree ↔ PR mapping** — Match `WorktreeInfo.branch` against `PullRequest.head_branch`. Implement `resolve_pr(worktree: WorktreeInfo, prs: list[PullRequest]) -> PullRequest | None` alongside M1-04.
+- [x] **M1-05 · Worktree ↔ PR mapping** — Match `WorktreeInfo.branch` against `PullRequest.head_branch`. Implement `resolve_pr(worktree: WorktreeInfo, prs: list[PullRequest]) -> PullRequest | None` alongside M1-04.
 
 ---
 
