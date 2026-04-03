@@ -299,6 +299,33 @@ class TestAddWorktreeModalBranchHint:
             text = hint.render().plain.strip()
             assert text == ""
 
+    async def test_hint_clears_after_autocomplete_selection(
+        self, modal_app, mock_list_branches
+    ):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            branch_input = app.screen.query_one("#branch-input", Input)
+            # Type partial text that doesn't match an existing branch
+            branch_input.value = "mai"
+            await pilot.pause()
+            hint = app.screen.query_one("#branch-hint", Static)
+            assert "mai" in hint.render().plain
+
+            # Simulate autocomplete selection
+            from modules.modals.add_worktree import BranchAutoComplete
+
+            ac = app.screen.query_one(
+                "#branch-autocomplete", BranchAutoComplete
+            )
+            branch_input.value = "main"
+            ac.post_message(BranchAutoComplete.Completed(value="main"))
+            await pilot.pause()
+
+            # Hint should be cleared since "main" is an existing branch
+            text = hint.render().plain.strip()
+            assert text == ""
+
     async def test_hint_hidden_for_empty_input(
         self, modal_app, mock_list_branches
     ):

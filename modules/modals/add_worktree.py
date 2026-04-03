@@ -2,16 +2,30 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from textual import work
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
+from textual.message import Message
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, Static
 from textual_autocomplete import AutoComplete, DropdownItem
 
 from modules.git import GitError, add_worktree, list_branches
+
+
+class BranchAutoComplete(AutoComplete):
+    """AutoComplete subclass that posts a message after completion."""
+
+    @dataclass
+    class Completed(Message):
+        value: str
+
+    def post_completion(self) -> None:
+        super().post_completion()
+        self.post_message(self.Completed(value=self.target.value))
 
 
 class AddWorktreeModal(ModalScreen[bool]):
@@ -32,7 +46,7 @@ class AddWorktreeModal(ModalScreen[bool]):
                 placeholder="type to search branches...", id="branch-input"
             )
             yield branch_input
-            yield AutoComplete(
+            yield BranchAutoComplete(
                 branch_input, candidates=[], id="branch-autocomplete"
             )
             yield Static(" ", id="branch-hint", classes="branch-hint")
@@ -68,15 +82,20 @@ class AddWorktreeModal(ModalScreen[bool]):
     def _branch_exists(self, name: str) -> bool:
         return name in self._branches or f"origin/{name}" in self._branches
 
-    def on_input_changed(self, event: Input.Changed) -> None:
-        value = event.value.strip()
+    def _update_branch_hint(self, value: str) -> None:
         hint = self.query_one("#branch-hint", Static)
         if value and not self._branch_exists(value):
-            hint.update(
-                f'New branch "{value}" will be created off "dev"'
-            )
+            hint.update(f'New branch "{value}" will be created off "dev"')
         else:
             hint.update(" ")
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        self._update_branch_hint(event.value.strip())
+
+    def on_branch_auto_complete_completed(
+        self, event: BranchAutoComplete.Completed
+    ) -> None:
+        self._update_branch_hint(event.value.strip())
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self._do_add()
