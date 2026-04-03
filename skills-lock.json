@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "clean-code-principles": {
+      "source": "asyrafhussin/agent-skills",
+      "sourceType": "github",
+      "computedHash": "4c22dca6110d58f1454523dc3f192ef20d91f538233da9132b407edd041a4762"
+    },
+    "python-testing-patterns": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "69915bb276b6aec61fe5b283a933f96584f66d14b616ce2060d95757629c6866"
+    }
+  }
+}
