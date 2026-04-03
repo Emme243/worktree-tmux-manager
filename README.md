@@ -45,6 +45,28 @@ uv run pytest --cov
 uv run pytest tests/unit/git/test_operations.py
 ```
 
+### Linting & Formatting
+
+This project uses [ruff](https://github.com/astral-sh/ruff) for linting and formatting.
+
+```bash
+# Format all project files
+uv run ruff format modules/ tests/ main.py
+
+# Check for lint violations without modifying files
+uv run ruff check modules/ tests/ main.py
+
+# Check and auto-fix lint violations
+uv run ruff check --fix modules/ tests/ main.py
+
+# Format a single file
+uv run ruff format path/to/file.py
+```
+
+**Enabled rule sets:** pycodestyle (`E`), pyflakes (`F`), isort (`I`), pyupgrade (`UP`), flake8-bugbear (`B`), flake8-simplify (`SIM`), ruff-specific (`RUF`). Full configuration is in `pyproject.toml` under `[tool.ruff]`.
+
+> **Claude Code users:** A hook automatically runs `ruff format` and `ruff check --fix` on every Python file you edit, so formatting is always applied.
+
 ### Managing Dependencies
 
 ```bash

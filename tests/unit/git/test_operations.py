@@ -26,7 +26,6 @@ from modules.git.operations import (
     unlock_worktree,
 )
 
-
 # ===========================================================================
 # parse_worktree_porcelain — sync, real data, no mocks
 # ===========================================================================
@@ -219,11 +218,7 @@ class TestParseStatusPorcelain:
         assert status.conflicted == 1
 
     def test_multiple_unrelated_files(self):
-        output = (
-            "A  src/new.py\n"
-            " M src/old.py\n"
-            "?? TODO.md\n"
-        )
+        output = "A  src/new.py\n M src/old.py\n?? TODO.md\n"
         status = parse_status_porcelain(output)
         assert status.staged == 1
         assert status.modified == 1
@@ -240,9 +235,7 @@ class TestRunGit:
     async def test_success_returns_stdout(self):
         mock_proc = MagicMock()
         mock_proc.returncode = 0
-        mock_proc.communicate = AsyncMock(
-            return_value=(b"output text\n", b"")
-        )
+        mock_proc.communicate = AsyncMock(return_value=(b"output text\n", b""))
 
         with patch(
             "modules.git.operations.asyncio.create_subprocess_exec",
@@ -259,26 +252,30 @@ class TestRunGit:
             return_value=(b"", b"fatal: not a git repository")
         )
 
-        with patch(
-            "modules.git.operations.asyncio.create_subprocess_exec",
-            new_callable=AsyncMock,
-            return_value=mock_proc,
+        with (
+            patch(
+                "modules.git.operations.asyncio.create_subprocess_exec",
+                new_callable=AsyncMock,
+                return_value=mock_proc,
+            ),
+            pytest.raises(GitError, match="fatal: not a git repository"),
         ):
-            with pytest.raises(GitError, match="fatal: not a git repository"):
-                await run_git("/repo", "status")
+            await run_git("/repo", "status")
 
     async def test_failure_with_empty_stderr_shows_unknown_error(self):
         mock_proc = MagicMock()
         mock_proc.returncode = 1
         mock_proc.communicate = AsyncMock(return_value=(b"", b""))
 
-        with patch(
-            "modules.git.operations.asyncio.create_subprocess_exec",
-            new_callable=AsyncMock,
-            return_value=mock_proc,
+        with (
+            patch(
+                "modules.git.operations.asyncio.create_subprocess_exec",
+                new_callable=AsyncMock,
+                return_value=mock_proc,
+            ),
+            pytest.raises(GitError, match="Unknown git error"),
         ):
-            with pytest.raises(GitError, match="Unknown git error"):
-                await run_git("/repo", "status")
+            await run_git("/repo", "status")
 
     async def test_passes_correct_args_to_subprocess(self):
         mock_proc = MagicMock()
@@ -330,9 +327,7 @@ class TestListWorktrees:
     async def test_calls_run_git_with_correct_args(self, mock_run_git):
         mock_run_git.return_value = ""
         await list_worktrees("/repo")
-        mock_run_git.assert_called_once_with(
-            "/repo", "worktree", "list", "--porcelain"
-        )
+        mock_run_git.assert_called_once_with("/repo", "worktree", "list", "--porcelain")
 
     async def test_returns_parsed_worktree_list(self, mock_run_git):
         mock_run_git.return_value = (
@@ -467,9 +462,7 @@ class TestAddWorktree:
     async def test_basic_add(self, mock_run_git):
         mock_run_git.return_value = ""
         await add_worktree("/repo", "/path/to/wt")
-        mock_run_git.assert_called_once_with(
-            "/repo", "worktree", "add", "/path/to/wt"
-        )
+        mock_run_git.assert_called_once_with("/repo", "worktree", "add", "/path/to/wt")
 
     async def test_with_existing_branch(self, mock_run_git):
         mock_run_git.return_value = ""
@@ -522,9 +515,7 @@ class TestRemoveWorktree:
     async def test_basic_remove(self, mock_run_git):
         mock_run_git.return_value = ""
         await remove_worktree("/repo", "/wt")
-        mock_run_git.assert_called_once_with(
-            "/repo", "worktree", "remove", "/wt"
-        )
+        mock_run_git.assert_called_once_with("/repo", "worktree", "remove", "/wt")
 
     async def test_force_remove(self, mock_run_git):
         mock_run_git.return_value = ""
@@ -557,9 +548,7 @@ class TestLockWorktree:
     async def test_lock_without_reason(self, mock_run_git):
         mock_run_git.return_value = ""
         await lock_worktree("/repo", "/wt")
-        mock_run_git.assert_called_once_with(
-            "/repo", "worktree", "lock", "/wt"
-        )
+        mock_run_git.assert_called_once_with("/repo", "worktree", "lock", "/wt")
 
     async def test_lock_with_reason(self, mock_run_git):
         mock_run_git.return_value = ""
@@ -578,9 +567,7 @@ class TestUnlockWorktree:
     async def test_unlock(self, mock_run_git):
         mock_run_git.return_value = ""
         await unlock_worktree("/repo", "/wt")
-        mock_run_git.assert_called_once_with(
-            "/repo", "worktree", "unlock", "/wt"
-        )
+        mock_run_git.assert_called_once_with("/repo", "worktree", "unlock", "/wt")
 
 
 # ===========================================================================
@@ -592,9 +579,7 @@ class TestPruneWorktrees:
     async def test_prune(self, mock_run_git):
         mock_run_git.return_value = ""
         await prune_worktrees("/repo")
-        mock_run_git.assert_called_once_with(
-            "/repo", "worktree", "prune", "--verbose"
-        )
+        mock_run_git.assert_called_once_with("/repo", "worktree", "prune", "--verbose")
 
 
 # ===========================================================================

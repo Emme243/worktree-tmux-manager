@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual import work
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.events import Key
 from textual.screen import Screen
-from textual.widgets import Button, DataTable, Footer, Header, Input, Static
+from textual.widgets import Button, DataTable, Header, Input, Static
 
 from modules.git import (
     GitError,
@@ -20,8 +21,6 @@ from modules.modals import (
     RemoveWorktreeModal,
     RenameWorktreeModal,
 )
-from rich.text import Text
-
 from modules.tmux import (
     TmuxError,
     build_session_config,
@@ -103,8 +102,12 @@ class WorktreeListScreen(Screen):
         table.clear()
         for wt in self.worktrees:
             table.add_row(
-                wt.name, wt.branch, wt.head, wt.status,
-                wt.wt_status_display, self._tmux_indicator(wt),
+                wt.name,
+                wt.branch,
+                wt.head,
+                wt.status,
+                wt.wt_status_display,
+                self._tmux_indicator(wt),
             )
 
     def _tmux_indicator(self, wt: WorktreeInfo) -> Text:
@@ -201,8 +204,12 @@ class WorktreeListScreen(Screen):
         if not query:
             for wt in self.worktrees:
                 table.add_row(
-                    wt.name, wt.branch, wt.head, wt.status,
-                    wt.wt_status_display, self._tmux_indicator(wt),
+                    wt.name,
+                    wt.branch,
+                    wt.head,
+                    wt.status,
+                    wt.wt_status_display,
+                    self._tmux_indicator(wt),
                 )
             return
         q = query.lower()
@@ -215,8 +222,12 @@ class WorktreeListScreen(Screen):
                 or q in wt.wt_status_display.lower()
             ):
                 table.add_row(
-                    wt.name, wt.branch, wt.head, wt.status,
-                    wt.wt_status_display, self._tmux_indicator(wt),
+                    wt.name,
+                    wt.branch,
+                    wt.head,
+                    wt.status,
+                    wt.wt_status_display,
+                    self._tmux_indicator(wt),
                 )
                 matched = True
         if not matched:
@@ -227,6 +238,10 @@ class WorktreeListScreen(Screen):
         table.clear()
         for wt in self.worktrees:
             table.add_row(
-                wt.name, wt.branch, wt.head, wt.status,
-                wt.wt_status_display, self._tmux_indicator(wt),
+                wt.name,
+                wt.branch,
+                wt.head,
+                wt.status,
+                wt.wt_status_display,
+                self._tmux_indicator(wt),
             )

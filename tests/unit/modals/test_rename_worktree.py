@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
-from textual.widgets import Button, Input, Label, Static
+from textual.widgets import Button, Input, Label
 
 from modules.git.models import GitError
 from modules.modals.rename_worktree import RenameWorktreeModal
-
 
 # ---------------------------------------------------------------------------
 # Helper
@@ -119,9 +117,7 @@ class TestRenameWorktreeModalValidation:
             await app.workers.wait_for_complete()
             mock_move_worktree.assert_not_called()
 
-    async def test_whitespace_only_does_not_rename(
-        self, modal_app, mock_move_worktree
-    ):
+    async def test_whitespace_only_does_not_rename(self, modal_app, mock_move_worktree):
         app = modal_app(RenameWorktreeModal("/repo", "/repos/my-feature"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
@@ -139,9 +135,7 @@ class TestRenameWorktreeModalValidation:
 
 class TestRenameWorktreeModalRename:
     async def test_rename_calls_move_worktree(self, modal_app, mock_move_worktree):
-        app = modal_app(
-            RenameWorktreeModal("/repo", "/home/user/repos/my-feature")
-        )
+        app = modal_app(RenameWorktreeModal("/repo", "/home/user/repos/my-feature"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
             app.screen.query_one("#new-name", Input).value = "renamed-feature"
@@ -155,12 +149,8 @@ class TestRenameWorktreeModalRename:
             )
             assert app.modal_result is True
 
-    async def test_input_submitted_triggers_rename(
-        self, modal_app, mock_move_worktree
-    ):
-        app = modal_app(
-            RenameWorktreeModal("/repo", "/home/user/repos/my-feature")
-        )
+    async def test_input_submitted_triggers_rename(self, modal_app, mock_move_worktree):
+        app = modal_app(RenameWorktreeModal("/repo", "/home/user/repos/my-feature"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot)
             name_input = app.screen.query_one("#new-name", Input)
@@ -184,9 +174,7 @@ class TestRenameWorktreeModalErrors:
             new_callable=AsyncMock,
             side_effect=GitError("permission denied"),
         ):
-            app = modal_app(
-                RenameWorktreeModal("/repo", "/home/user/repos/my-feature")
-            )
+            app = modal_app(RenameWorktreeModal("/repo", "/home/user/repos/my-feature"))
             async with app.run_test(size=(100, 40)) as pilot:
                 await _wait_ready(pilot)
                 app.screen.query_one("#new-name", Input).value = "renamed"

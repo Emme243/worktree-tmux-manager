@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import pytest
 from textual.app import App
 from textual.widgets import Static
 
 from modules.screens.help_overlay import HELP_TEXT, HelpOverlay
-
 
 # ---------------------------------------------------------------------------
 # Host app for testing the modal overlay

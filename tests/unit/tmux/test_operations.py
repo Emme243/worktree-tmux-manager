@@ -21,7 +21,6 @@ from modules.tmux.operations import (
     session_exists,
 )
 
-
 # ---------------------------------------------------------------------------
 # _run_tmux — subprocess gateway
 # ---------------------------------------------------------------------------
@@ -124,13 +123,9 @@ class TestCreateSession:
             "new-session", "-d", "-s", "tt-feat", "-n", "editor", "-c", "/repo"
         )
         # send-keys for first window
-        assert calls[1] == call(
-            "send-keys", "-t", "tt-feat:editor", "nvim", "C-m"
-        )
+        assert calls[1] == call("send-keys", "-t", "tt-feat:editor", "nvim", "C-m")
         # select-window
-        assert calls[2] == call(
-            "select-window", "-t", "tt-feat:editor"
-        )
+        assert calls[2] == call("select-window", "-t", "tt-feat:editor")
 
     def test_creates_additional_windows(self, mock_run_tmux, sample_session_config):
         _create_session(sample_session_config)
@@ -146,28 +141,27 @@ class TestCreateSession:
         calls = mock_run_tmux.call_args_list
         # Second window (claude) — calls[2] is new-window, calls[3] is send-keys
         assert calls[2] == call(
-            "new-window", "-t", "tt-my-feature",
-            "-n", "claude", "-c", "/repo"
+            "new-window", "-t", "tt-my-feature", "-n", "claude", "-c", "/repo"
         )
         assert calls[3] == call(
             "send-keys", "-t", "tt-my-feature:claude", "claude", "C-m"
         )
         # Third window (serve) — calls[4] is new-window, calls[5] is send-keys
         assert calls[4] == call(
-            "new-window", "-t", "tt-my-feature",
-            "-n", "serve", "-c", "/repo/frontend"
+            "new-window", "-t", "tt-my-feature", "-n", "serve", "-c", "/repo/frontend"
         )
         assert calls[5] == call(
-            "send-keys", "-t", "tt-my-feature:serve",
-            "npm install && npm run serve", "C-m"
+            "send-keys",
+            "-t",
+            "tt-my-feature:serve",
+            "npm install && npm run serve",
+            "C-m",
         )
 
     def test_selects_default_window(self, mock_run_tmux, sample_session_config):
         _create_session(sample_session_config)
         last_call = mock_run_tmux.call_args_list[-1]
-        assert last_call == call(
-            "select-window", "-t", "tt-my-feature:editor"
-        )
+        assert last_call == call("select-window", "-t", "tt-my-feature:editor")
 
 
 # ---------------------------------------------------------------------------
@@ -196,22 +190,14 @@ class TestIsInsideTmux:
 
 class TestAttachSession:
     def test_switches_client_when_inside_tmux(self, mock_run_tmux):
-        with patch(
-            "modules.tmux.operations.is_inside_tmux", return_value=True
-        ):
+        with patch("modules.tmux.operations.is_inside_tmux", return_value=True):
             _attach_session("my-session")
-            mock_run_tmux.assert_called_once_with(
-                "switch-client", "-t", "my-session"
-            )
+            mock_run_tmux.assert_called_once_with("switch-client", "-t", "my-session")
 
     def test_attaches_session_when_outside_tmux(self, mock_run_tmux):
-        with patch(
-            "modules.tmux.operations.is_inside_tmux", return_value=False
-        ):
+        with patch("modules.tmux.operations.is_inside_tmux", return_value=False):
             _attach_session("my-session")
-            mock_run_tmux.assert_called_once_with(
-                "attach-session", "-t", "my-session"
-            )
+            mock_run_tmux.assert_called_once_with("attach-session", "-t", "my-session")
 
 
 # ---------------------------------------------------------------------------
@@ -330,13 +316,13 @@ class TestEnterWorktreeSession:
                 WindowConfig(name="editor", command="nvim", working_dir="/r"),
             ],
         )
-        with patch(
-            "modules.tmux.operations.session_exists", return_value=False
-        ) as mock_exists, patch(
-            "modules.tmux.operations._create_session"
-        ) as mock_create, patch(
-            "modules.tmux.operations._attach_session"
-        ) as mock_attach:
+        with (
+            patch(
+                "modules.tmux.operations.session_exists", return_value=False
+            ) as mock_exists,
+            patch("modules.tmux.operations._create_session") as mock_create,
+            patch("modules.tmux.operations._attach_session") as mock_attach,
+        ):
             enter_worktree_session(config)
             mock_exists.assert_called_once_with("tt-feat")
             mock_create.assert_called_once_with(config)
@@ -349,13 +335,13 @@ class TestEnterWorktreeSession:
                 WindowConfig(name="editor", command="nvim", working_dir="/r"),
             ],
         )
-        with patch(
-            "modules.tmux.operations.session_exists", return_value=True
-        ) as mock_exists, patch(
-            "modules.tmux.operations._create_session"
-        ) as mock_create, patch(
-            "modules.tmux.operations._attach_session"
-        ) as mock_attach:
+        with (
+            patch(
+                "modules.tmux.operations.session_exists", return_value=True
+            ) as mock_exists,
+            patch("modules.tmux.operations._create_session") as mock_create,
+            patch("modules.tmux.operations._attach_session") as mock_attach,
+        ):
             enter_worktree_session(config)
             mock_exists.assert_called_once_with("tt-feat")
             mock_create.assert_not_called()

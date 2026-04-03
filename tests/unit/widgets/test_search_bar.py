@@ -4,14 +4,12 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 from textual.containers import Horizontal
 from textual.widgets import Input, Label
 
 from modules.widgets.search_bar import SearchBar
 
 from .conftest import SearchBarApp
-
 
 # ---------------------------------------------------------------------------
 # Submitted / Dismissed messages

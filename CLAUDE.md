@@ -28,7 +28,20 @@ uv run pytest tests/unit/git/test_operations.py
 uv run pytest tests/unit/git/test_operations.py::test_function_name -v
 ```
 
-No linter or formatter is currently configured.
+## Linting & Formatting (ruff)
+
+```bash
+# Format all files
+uv run ruff format modules/ tests/ main.py
+
+# Check lint rules (no auto-fix)
+uv run ruff check modules/ tests/ main.py
+
+# Check and auto-fix lint issues
+uv run ruff check --fix modules/ tests/ main.py
+```
+
+A Claude Code hook auto-runs `ruff format` and `ruff check --fix` on every Python file edit.
 
 ## Architecture
 
@@ -54,6 +67,6 @@ No linter or formatter is currently configured.
 ## Dependencies
 
 - **Runtime:** `textual>=0.40`
-- **Dev:** `pytest>=8.0`, `pytest-asyncio>=0.24`, `pytest-cov>=5.0`
+- **Dev:** `pytest>=8.0`, `pytest-asyncio>=0.24`, `pytest-cov>=5.0`, `ruff>=0.11`
 - **Build backend:** hatchling
 - **Python:** 3.11+ (see `.python-version`)

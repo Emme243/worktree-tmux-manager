@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import pytest
 from textual.app import App, ComposeResult
-from textual.widgets import DataTable
 
 from modules.widgets.search_bar import SearchBar
 from modules.widgets.vim_data_table import VimDataTable
-
 
 # ---------------------------------------------------------------------------
 # Minimal host apps for isolated widget testing

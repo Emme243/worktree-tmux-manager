@@ -41,19 +41,26 @@ def _create_session(config: SessionConfig) -> None:
     first, *rest = config.windows
 
     _run_tmux(
-        "new-session", "-d",
-        "-s", config.name,
-        "-n", first.name,
-        "-c", first.working_dir,
+        "new-session",
+        "-d",
+        "-s",
+        config.name,
+        "-n",
+        first.name,
+        "-c",
+        first.working_dir,
     )
     _run_tmux("send-keys", "-t", f"{config.name}:{first.name}", first.command, "C-m")
 
     for win in rest:
         _run_tmux(
             "new-window",
-            "-t", config.name,
-            "-n", win.name,
-            "-c", win.working_dir,
+            "-t",
+            config.name,
+            "-n",
+            win.name,
+            "-c",
+            win.working_dir,
         )
         _run_tmux("send-keys", "-t", f"{config.name}:{win.name}", win.command, "C-m")
 

@@ -8,7 +8,6 @@ import pytest
 
 from modules.tmux.models import SessionConfig, WindowConfig
 
-
 # ---------------------------------------------------------------------------
 # Mock _run_tmux — the single subprocess gateway
 # ---------------------------------------------------------------------------

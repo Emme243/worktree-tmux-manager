@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from textual.app import App
 
 from modules.app import REPO_DIR, GitWorktreeApp
 from modules.screens.help_overlay import HelpOverlay
 from modules.screens.worktree_list import WorktreeListScreen
-
 
 # ---------------------------------------------------------------------------
 # Class-level attributes
@@ -54,8 +52,7 @@ class TestValidateAndStartDirMissing:
                 # App should have exited — check that no screen was pushed
                 # (the default screen is the only one)
                 assert not any(
-                    isinstance(s, WorktreeListScreen)
-                    for s in app.screen_stack
+                    isinstance(s, WorktreeListScreen) for s in app.screen_stack
                 )
 
 
@@ -80,8 +77,7 @@ class TestValidateAndStartNotGitRepo:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
                 assert not any(
-                    isinstance(s, WorktreeListScreen)
-                    for s in app.screen_stack
+                    isinstance(s, WorktreeListScreen) for s in app.screen_stack
                 )
 
 
@@ -120,10 +116,7 @@ class TestValidateAndStartSuccess:
                 await app.workers.wait_for_complete()
                 await pilot.pause()
                 await app.workers.wait_for_complete()
-                assert any(
-                    isinstance(s, WorktreeListScreen)
-                    for s in app.screen_stack
-                )
+                assert any(isinstance(s, WorktreeListScreen) for s in app.screen_stack)
 
 
 # ---------------------------------------------------------------------------
@@ -167,10 +160,7 @@ class TestActionHelp:
                 await app.workers.wait_for_complete()
                 app.action_help()
                 await pilot.pause()
-                assert any(
-                    isinstance(s, HelpOverlay)
-                    for s in app.screen_stack
-                )
+                assert any(isinstance(s, HelpOverlay) for s in app.screen_stack)
 
     async def test_question_mark_key_opens_help(self):
         app = GitWorktreeApp()
@@ -181,7 +171,4 @@ class TestActionHelp:
                 # Directly call the action bound to question_mark
                 app.action_help()
                 await pilot.pause()
-                assert any(
-                    isinstance(s, HelpOverlay)
-                    for s in app.screen_stack
-                )
+                assert any(isinstance(s, HelpOverlay) for s in app.screen_stack)

@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
-from textual.widgets import Button, Input, Label, Static
-from textual_autocomplete import AutoComplete, DropdownItem
+from textual.widgets import Button, Input, Static
+from textual_autocomplete import AutoComplete
 
 from modules.git.models import GitError
 from modules.modals.add_worktree import AddWorktreeModal
-
 
 # ---------------------------------------------------------------------------
 # Helper — wait for modal to be fully mounted and workers to settle
@@ -114,9 +112,7 @@ class TestAddWorktreeModalBranchLoading:
 
 
 class TestAddWorktreeModalCancel:
-    async def test_cancel_button_dismisses_false(
-        self, modal_app, mock_list_branches
-    ):
+    async def test_cancel_button_dismisses_false(self, modal_app, mock_list_branches):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
@@ -275,9 +271,7 @@ class TestAddWorktreeModalBranchHint:
             assert "brand-new" in text
             assert "dev" in text
 
-    async def test_hint_hidden_for_existing_branch(
-        self, modal_app, mock_list_branches
-    ):
+    async def test_hint_hidden_for_existing_branch(self, modal_app, mock_list_branches):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
@@ -315,9 +309,7 @@ class TestAddWorktreeModalBranchHint:
             # Simulate autocomplete selection
             from modules.modals.add_worktree import BranchAutoComplete
 
-            ac = app.screen.query_one(
-                "#branch-autocomplete", BranchAutoComplete
-            )
+            ac = app.screen.query_one("#branch-autocomplete", BranchAutoComplete)
             branch_input.value = "main"
             ac.post_message(BranchAutoComplete.Completed(value="main"))
             await pilot.pause()
@@ -326,9 +318,7 @@ class TestAddWorktreeModalBranchHint:
             text = hint.render().plain.strip()
             assert text == ""
 
-    async def test_hint_hidden_for_empty_input(
-        self, modal_app, mock_list_branches
-    ):
+    async def test_hint_hidden_for_empty_input(self, modal_app, mock_list_branches):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
@@ -351,9 +341,7 @@ class TestAddWorktreeModalErrors:
             new_callable=AsyncMock,
             side_effect=GitError("already exists"),
         ):
-            app = modal_app(
-                AddWorktreeModal(repo_dir="/home/user/repos/project")
-            )
+            app = modal_app(AddWorktreeModal(repo_dir="/home/user/repos/project"))
             async with app.run_test(size=(100, 40)) as pilot:
                 await _wait_ready(pilot, app)
                 app.screen.query_one("#branch-input", Input).value = "new-feature"

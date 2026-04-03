@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pytest
 from textual.widgets import DataTable
 
 from modules.widgets.vim_data_table import VimDataTable
-
-from .conftest import VimDataTableApp
-
 
 # ---------------------------------------------------------------------------
 # Inheritance and BINDINGS
@@ -153,6 +149,7 @@ class TestClearGPending:
             assert table._g_pending is True
             # Wait for the 0.5s timer to fire
             import asyncio
+
             await asyncio.sleep(0.6)
             await pilot.pause()
             assert table._g_pending is False
@@ -183,7 +180,9 @@ class TestOnKeyEventHandling:
             await pilot.press("G")
             await pilot.pause()
             assert table.cursor_row > 0
-            with patch.object(table, "action_scroll_top", wraps=table.action_scroll_top) as mock_scroll:
+            with patch.object(
+                table, "action_scroll_top", wraps=table.action_scroll_top
+            ) as mock_scroll:
                 await pilot.press("g")
                 await pilot.press("g")
                 await pilot.pause()

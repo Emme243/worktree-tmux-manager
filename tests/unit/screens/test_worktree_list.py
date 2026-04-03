@@ -2,19 +2,17 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from rich.text import Text
 from textual.widgets import Button, DataTable, Input, Static
 
-from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
+from modules.git.models import GitError
 from modules.screens.worktree_list import WorktreeListScreen
 from modules.tmux import TmuxError
 from modules.widgets import SearchBar, VimDataTable
 
 from .conftest import ScreenTestApp, wait_ready
-
 
 # ---------------------------------------------------------------------------
 # Helper — create screen app with all mocks active
@@ -244,9 +242,11 @@ class TestWorktreeListScreenGetSelected:
             table = app.screen.query_one("#wt-table", VimDataTable)
             # Make cursor_row property raise to trigger the except branch
             with patch.object(
-                type(table), "cursor_row", new_callable=lambda: property(
+                type(table),
+                "cursor_row",
+                new_callable=lambda: property(
                     lambda self: (_ for _ in ()).throw(RuntimeError("boom"))
-                )
+                ),
             ):
                 wt = app.screen._get_selected_worktree()
                 assert wt is None

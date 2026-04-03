@@ -4,12 +4,10 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
-from textual.widgets import Button, Label, Static
+from textual.widgets import Button, Label
 
-from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
+from modules.git.models import GitError, WorktreeInfo
 from modules.modals.remove_worktree import RemoveWorktreeModal
-
 
 # ---------------------------------------------------------------------------
 # Helper

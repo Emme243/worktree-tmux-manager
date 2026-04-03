@@ -15,9 +15,7 @@ def mock_run_git():
 
     Returns the mock so tests can configure ``.return_value`` or ``.side_effect``.
     """
-    with patch(
-        "modules.git.operations.run_git", new_callable=AsyncMock
-    ) as mock:
+    with patch("modules.git.operations.run_git", new_callable=AsyncMock) as mock:
         yield mock
 
 

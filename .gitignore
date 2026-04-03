@@ -22,6 +22,7 @@ htmlcov/
 .mypy_cache/
 
 # Claude Code
-.claude/
+.claude/settings.local.json
+.claude/skills/
 .agents/
 skills-lock.json

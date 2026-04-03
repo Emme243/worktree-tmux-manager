@@ -8,7 +8,10 @@ from .models import GitError, WorkingTreeStatus, WorktreeInfo
 
 
 async def run_git(repo_dir: str, *args: str) -> str:
-    """Run ``git -C <repo_dir> <args>`` and return stdout. Raises GitError on failure."""
+    """Run ``git -C <repo_dir> <args>`` and return stdout.
+
+    Raises GitError on failure.
+    """
     proc = await asyncio.create_subprocess_exec(
         "git",
         "-C",
@@ -41,11 +44,11 @@ def parse_worktree_porcelain(output: str) -> list[WorktreeInfo]:
         wt = WorktreeInfo()
         for line in block.strip().splitlines():
             if line.startswith("worktree "):
-                wt.path = line[len("worktree "):]
+                wt.path = line[len("worktree ") :]
             elif line.startswith("HEAD "):
-                wt.head = line[len("HEAD "):][:8]
+                wt.head = line[len("HEAD ") :][:8]
             elif line.startswith("branch "):
-                wt.branch = line[len("branch "):].removeprefix("refs/heads/")
+                wt.branch = line[len("branch ") :].removeprefix("refs/heads/")
             elif line == "bare":
                 wt.is_bare = True
                 wt.branch = "(bare)"
@@ -54,7 +57,7 @@ def parse_worktree_porcelain(output: str) -> list[WorktreeInfo]:
                 wt.branch = "(detached)"
             elif line.startswith("locked"):
                 wt.locked = True
-                rest = line[len("locked"):].strip()
+                rest = line[len("locked") :].strip()
                 if rest:
                     wt.lock_reason = rest
             elif line.startswith("prunable"):

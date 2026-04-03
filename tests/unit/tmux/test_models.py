@@ -6,7 +6,6 @@ import pytest
 
 from modules.tmux.models import SessionConfig, TmuxError, WindowConfig
 
-
 # ---------------------------------------------------------------------------
 # TmuxError
 # ---------------------------------------------------------------------------

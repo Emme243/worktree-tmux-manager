@@ -47,8 +47,12 @@ def mock_list_branches():
         "modules.modals.add_worktree.list_branches",
         new_callable=AsyncMock,
         return_value=[
-            "main", "dev", "feature/login",
-            "origin/main", "origin/dev", "origin/feature/login",
+            "main",
+            "dev",
+            "feature/login",
+            "origin/main",
+            "origin/dev",
+            "origin/feature/login",
             "origin/feature/remote-only",
         ],
     ) as mock:

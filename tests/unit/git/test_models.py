@@ -6,7 +6,6 @@ import pytest
 
 from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
 
-
 # ---------------------------------------------------------------------------
 # GitError
 # ---------------------------------------------------------------------------
@@ -163,9 +162,7 @@ class TestWorktreeInfoWtStatusDisplay:
         assert wt.wt_status_display == "clean"
 
     def test_dirty_status_delegates_to_summary(self):
-        wt = WorktreeInfo(
-            wt_status=WorkingTreeStatus(staged=1, modified=2)
-        )
+        wt = WorktreeInfo(wt_status=WorkingTreeStatus(staged=1, modified=2))
         assert wt.wt_status_display == "1S 2M"
 
     def test_bare_takes_precedence_over_wt_status(self):

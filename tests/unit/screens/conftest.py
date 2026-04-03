@@ -9,7 +9,6 @@ from textual.app import App
 
 from modules.git.models import WorkingTreeStatus, WorktreeInfo
 
-
 # ---------------------------------------------------------------------------
 # Sample worktree data
 # ---------------------------------------------------------------------------
