@@ -43,6 +43,13 @@ class GitWorktreeApp(App):
                 self.exit()
             return
 
+        if len(config.projects) > 1:
+            self.push_screen(
+                ProjectPickerScreen(config),
+                callback=self._on_project_picked,
+            )
+            return
+
         repo = str(config.repo_path)
 
         if not os.path.isdir(repo):
@@ -66,6 +73,12 @@ class GitWorktreeApp(App):
             return
 
         self.push_screen(WorktreeListScreen(repo))
+
+    def _on_project_picked(self, result: ProjectConfig | None) -> None:
+        if result is None:
+            self.exit()
+            return
+        self.push_screen(WorktreeListScreen(str(result.path)))
 
     def _on_first_run_setup(self, result: Path | None) -> None:
         if result is None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -203,3 +204,26 @@ def git_repo_dir(tmp_path: Path) -> Path:
 def non_git_dir(tmp_path: Path) -> Path:
     """A temp directory without a ``.git`` subdirectory."""
     return tmp_path
+
+
+# ---------------------------------------------------------------------------
+# ProjectPickerScreen fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def sample_projects():
+    """Two sample ProjectConfig entries for picker tests."""
+    from modules.core.config import ProjectConfig
+
+    return [
+        ProjectConfig(path=Path("/home/user/repos/alpha"), name="alpha"),
+        ProjectConfig(path=Path("/home/user/repos/beta"), name="beta"),
+    ]
+
+
+@pytest.fixture
+def mock_save_config_picker():
+    """Patch ``save_config`` in the project_picker module."""
+    with patch("modules.screens.project_picker.save_config") as mock:
+        yield mock
