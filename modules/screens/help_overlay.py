@@ -51,6 +51,7 @@ HELP_SECTIONS: list[tuple[str, list[tuple[str, str]]]] = [
             ("Escape", "Cancel & close"),
             ("Enter", "Submit / confirm"),
             ("Tab", "Next field"),
+            ("j / k", "Scroll help content"),
         ],
     ),
 ]
@@ -62,6 +63,8 @@ class HelpOverlay(ModalScreen[None]):
     BINDINGS = [
         Binding("escape", "dismiss_help", "Close", show=False),
         Binding("question_mark", "dismiss_help", "Close", show=False),
+        Binding("j", "scroll_down", "Scroll down", show=False),
+        Binding("k", "scroll_up", "Scroll up", show=False),
     ]
 
     def compose(self):
@@ -80,6 +83,12 @@ class HelpOverlay(ModalScreen[None]):
                         with Horizontal(classes="help-row"):
                             yield Static(key, classes="help-key")
                             yield Static(description, classes="help-desc")
+
+    def action_scroll_down(self) -> None:
+        self.query_one("#help-content").scroll_down(animate=False)
+
+    def action_scroll_up(self) -> None:
+        self.query_one("#help-content").scroll_up(animate=False)
 
     def action_dismiss_help(self) -> None:
         self.dismiss(None)

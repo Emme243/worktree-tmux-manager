@@ -171,8 +171,7 @@ ModalScreen {
 }
 
 #help-content {
-    height: auto;
-    max-height: 100%;
+    height: 1fr;
     margin: 1 0;
 }
 

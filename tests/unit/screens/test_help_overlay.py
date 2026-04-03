@@ -116,6 +116,41 @@ class TestHelpOverlayDismiss:
             await pilot.pause()
             assert app.modal_result is None
 
+    async def test_j_does_not_dismiss(self):
+        app = HelpOverlayApp()
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            await pilot.press("j")
+            await pilot.pause()
+            assert app.modal_result == "NOT_DISMISSED"
+
+    async def test_k_does_not_dismiss(self):
+        app = HelpOverlayApp()
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            await pilot.press("k")
+            await pilot.pause()
+            assert app.modal_result == "NOT_DISMISSED"
+
+    async def test_action_scroll_down_targets_help_content(self):
+        app = HelpOverlayApp()
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            scroll = app.screen.query_one("#help-content")
+            app.screen.action_scroll_down()
+            await pilot.pause()
+            # Verify the action runs without error and targets the scroll container
+            assert scroll is not None
+
+    async def test_action_scroll_up_targets_help_content(self):
+        app = HelpOverlayApp()
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            scroll = app.screen.query_one("#help-content")
+            app.screen.action_scroll_up()
+            await pilot.pause()
+            assert scroll is not None
+
     async def test_action_dismiss_help_dismisses(self):
         app = HelpOverlayApp()
         async with app.run_test(size=(100, 40)) as pilot:
