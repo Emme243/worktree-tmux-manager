@@ -35,6 +35,7 @@ class AddWorktreeModal(ModalScreen[bool]):
             yield AutoComplete(
                 branch_input, candidates=[], id="branch-autocomplete"
             )
+            yield Static(" ", id="branch-hint", classes="branch-hint")
             with Horizontal(classes="modal-buttons"):
                 yield Button("Create", variant="success", id="confirm-btn")
                 yield Button("Cancel", id="cancel-btn")
@@ -45,13 +46,37 @@ class AddWorktreeModal(ModalScreen[bool]):
     @work
     async def _load_branches(self) -> None:
         try:
-            branches = await list_branches(self.repo_dir)
-            self._branches = set(branches)
+            all_branches = await list_branches(self.repo_dir)
+            self._branches = set(all_branches)
+
+            # Deduplicate: show origin/* (stripped) + local-only branches
+            local = set()
+            remote = set()
+            for b in all_branches:
+                if b.startswith("origin/"):
+                    remote.add(b.removeprefix("origin/"))
+                else:
+                    local.add(b)
+            display_branches = sorted(remote | (local - remote))
+
             ac = self.query_one("#branch-autocomplete", AutoComplete)
-            ac.candidates = [DropdownItem(main=b) for b in sorted(branches)]
+            ac.candidates = [DropdownItem(main=b) for b in display_branches]
         except GitError as e:
             self._branches = set()
             self.notify(f"Failed to load branches: {e}", severity="error")
+
+    def _branch_exists(self, name: str) -> bool:
+        return name in self._branches or f"origin/{name}" in self._branches
+
+    def on_input_changed(self, event: Input.Changed) -> None:
+        value = event.value.strip()
+        hint = self.query_one("#branch-hint", Static)
+        if value and not self._branch_exists(value):
+            hint.update(
+                f'New branch "{value}" will be created off "dev"'
+            )
+        else:
+            hint.update(" ")
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         self._do_add()
@@ -69,11 +94,11 @@ class AddWorktreeModal(ModalScreen[bool]):
             self.notify("Branch name is required", severity="error")
             return
 
-        wt_name = branch_value.replace("/", "-")
+        wt_name = branch_value.replace("/", "-").strip()
         parent_dir = Path(self.repo_dir).parent
         wt_path = str(parent_dir / wt_name)
 
-        if branch_value in self._branches:
+        if self._branch_exists(branch_value):
             branch = branch_value
             new_branch = None
         else:

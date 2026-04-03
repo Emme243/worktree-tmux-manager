@@ -52,6 +52,13 @@ class TestAddWorktreeModalCompose:
             ac = app.screen.query_one("#branch-autocomplete", AutoComplete)
             assert ac is not None
 
+    async def test_renders_branch_hint(self, modal_app, mock_list_branches):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            hint = app.screen.query_one("#branch-hint", Static)
+            assert hint is not None
+
     async def test_renders_buttons(self, modal_app, mock_list_branches):
         app = modal_app(AddWorktreeModal(repo_dir="/repo"))
         async with app.run_test(size=(100, 40)) as pilot:
@@ -73,7 +80,9 @@ class TestAddWorktreeModalBranchLoading:
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
             mock_list_branches.assert_called_once_with("/repo")
+            # _branches keeps the full raw set (local + remote)
             assert "main" in app.screen._branches
+            assert "origin/main" in app.screen._branches
 
     async def test_populates_autocomplete_candidates(
         self, modal_app, mock_list_branches
@@ -82,9 +91,10 @@ class TestAddWorktreeModalBranchLoading:
         async with app.run_test(size=(100, 40)) as pilot:
             await _wait_ready(pilot, app)
             ac = app.screen.query_one("#branch-autocomplete", AutoComplete)
-            assert len(ac.candidates) == 3
+            # Deduplicated: origin/* stripped + local-only
+            assert len(ac.candidates) == 4
             values = {c.value for c in ac.candidates}
-            assert values == {"main", "dev", "feature/login"}
+            assert values == {"main", "dev", "feature/login", "feature/remote-only"}
 
     async def test_branch_load_failure_sets_empty(self, modal_app):
         with patch(
@@ -215,6 +225,25 @@ class TestAddWorktreeModalCreate:
             )
             assert app.modal_result is True
 
+    async def test_create_with_remote_only_branch(
+        self, modal_app, mock_list_branches, mock_add_worktree
+    ):
+        app = modal_app(AddWorktreeModal(repo_dir="/home/user/repos/project"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            app.screen.query_one("#branch-input", Input).value = "feature/remote-only"
+            await pilot.click("#confirm-btn")
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            # Exists only as origin/feature/remote-only → treated as existing
+            mock_add_worktree.assert_called_once_with(
+                "/home/user/repos/project",
+                "/home/user/repos/feature-remote-only",
+                "feature/remote-only",
+                None,
+            )
+            assert app.modal_result is True
+
     async def test_input_submitted_triggers_create(
         self, modal_app, mock_list_branches, mock_add_worktree
     ):
@@ -227,6 +256,60 @@ class TestAddWorktreeModalCreate:
             await pilot.pause()
             await app.workers.wait_for_complete()
             mock_add_worktree.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Branch hint
+# ---------------------------------------------------------------------------
+
+
+class TestAddWorktreeModalBranchHint:
+    async def test_hint_shows_for_new_branch(self, modal_app, mock_list_branches):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            app.screen.query_one("#branch-input", Input).value = "brand-new"
+            await pilot.pause()
+            hint = app.screen.query_one("#branch-hint", Static)
+            text = hint.render().plain
+            assert "brand-new" in text
+            assert "dev" in text
+
+    async def test_hint_hidden_for_existing_branch(
+        self, modal_app, mock_list_branches
+    ):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            app.screen.query_one("#branch-input", Input).value = "main"
+            await pilot.pause()
+            hint = app.screen.query_one("#branch-hint", Static)
+            text = hint.render().plain.strip()
+            assert text == ""
+
+    async def test_hint_hidden_for_remote_only_branch(
+        self, modal_app, mock_list_branches
+    ):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            app.screen.query_one("#branch-input", Input).value = "feature/remote-only"
+            await pilot.pause()
+            hint = app.screen.query_one("#branch-hint", Static)
+            text = hint.render().plain.strip()
+            assert text == ""
+
+    async def test_hint_hidden_for_empty_input(
+        self, modal_app, mock_list_branches
+    ):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            app.screen.query_one("#branch-input", Input).value = ""
+            await pilot.pause()
+            hint = app.screen.query_one("#branch-hint", Static)
+            text = hint.render().plain.strip()
+            assert text == ""
 
 
 # ---------------------------------------------------------------------------
