@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 from rich.text import Text
-from textual.widgets import Button, DataTable, Input, Static
+from textual.widgets import Button, DataTable, Footer, Input, Static
 
-from modules.git.models import GitError
+from modules.git.models import GitError, WorkingTreeStatus, WorktreeInfo
 from modules.screens.worktree_list import WorktreeListScreen
 from modules.tmux import TmuxError
 from modules.widgets import SearchBar, VimDataTable
@@ -78,7 +78,14 @@ class TestWorktreeListScreenCompose:
             rename = app.screen.query_one("#rename-btn", Button)
             assert "C" in create.label.plain
             assert "D" in delete.label.plain
-            assert "R" in rename.label.plain
+            assert "N" in rename.label.plain
+
+    async def test_renders_footer(self, all_screen_mocks):
+        app = _make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            footer = app.screen.query_one(Footer)
+            assert footer is not None
 
     async def test_table_has_six_columns(self, all_screen_mocks):
         app = _make_app()
@@ -512,13 +519,11 @@ class TestWorktreeListScreenSearch:
             search_input = bar.query_one("#search-input", Input)
             search_input.focus()
             await pilot.pause()
-            # Directly invoke on_key to guarantee it runs the early-return path
-            mock_event = MagicMock()
-            mock_event.key = "slash"
-            app.screen.on_key(mock_event)
-            # show_bar should NOT have been called again
-            mock_event.prevent_default.assert_not_called()
-            mock_event.stop.assert_not_called()
+            # Pressing slash while input is focused should type "/" not trigger search action
+            with patch.object(app.screen, "action_search") as mock_search:
+                await pilot.press("slash")
+                await pilot.pause()
+                mock_search.assert_not_called()
 
     async def test_filter_by_name_reduces_rows(self, all_screen_mocks):
         app = _make_app()
@@ -631,7 +636,7 @@ class TestWorktreeListScreenKeybindings:
                 await pilot.pause()
                 mock_push.assert_called_once()
 
-    async def test_r_key_triggers_rename(self, all_screen_mocks):
+    async def test_n_key_triggers_rename(self, all_screen_mocks):
         app = _make_app()
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
@@ -639,9 +644,21 @@ class TestWorktreeListScreenKeybindings:
             table.move_cursor(row=1)
             table.focus()
             with patch.object(app, "push_screen") as mock_push:
-                await pilot.press("r")
+                await pilot.press("n")
                 await pilot.pause()
                 mock_push.assert_called_once()
+
+    async def test_r_key_triggers_refresh(self, all_screen_mocks):
+        app = _make_app()
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            table = app.screen.query_one("#wt-table", VimDataTable)
+            table.focus()
+            all_screen_mocks["list_worktrees"].reset_mock()
+            await pilot.press("r")
+            await pilot.pause()
+            await app.workers.wait_for_complete()
+            all_screen_mocks["list_worktrees"].assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -669,3 +686,71 @@ class TestWorktreeListScreenRowSelection:
             with patch.object(app, "suspend"):
                 app.screen.on_data_table_row_selected(event)
             mock_build_session_config.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Styled name (main worktree highlight)
+# ---------------------------------------------------------------------------
+
+
+class TestWorktreeListScreenStyledName:
+    async def test_main_worktree_name_is_bold_yellow(self, all_screen_mocks):
+        app = _make_app("/home/user/repos/project")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            screen = app.screen
+            main_wt = screen.worktrees[0]  # path matches repo_dir
+            styled = screen._styled_name(main_wt)
+            assert isinstance(styled, Text)
+            assert styled.plain == "project"
+            assert "bold" in str(styled.style)
+
+    async def test_non_main_worktree_name_is_plain_string(self, all_screen_mocks):
+        app = _make_app("/home/user/repos/project")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            screen = app.screen
+            other_wt = screen.worktrees[1]  # path does NOT match repo_dir
+            styled = screen._styled_name(other_wt)
+            assert isinstance(styled, str)
+            assert styled == "feature-login"
+
+    async def test_is_main_worktree_matches_repo_dir(self, all_screen_mocks):
+        app = _make_app("/home/user/repos/project")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await wait_ready(pilot, app)
+            screen = app.screen
+            assert screen._is_main_worktree(screen.worktrees[0]) is True
+            assert screen._is_main_worktree(screen.worktrees[1]) is False
+            assert screen._is_main_worktree(screen.worktrees[2]) is False
+
+    async def test_main_worktree_non_bare(
+        self, mock_populate_statuses, mock_tmux_active
+    ):
+        """The main worktree need not be bare — path match is what counts."""
+        non_bare_main = [
+            WorktreeInfo(
+                path="/home/user/repos/project",
+                head="aabbccdd",
+                branch="main",
+                wt_status=WorkingTreeStatus(),
+            ),
+            WorktreeInfo(
+                path="/home/user/repos/feature-login",
+                head="11223344",
+                branch="feature/login",
+                wt_status=WorkingTreeStatus(),
+            ),
+        ]
+        with patch(
+            "modules.screens.worktree_list.list_worktrees",
+            new_callable=AsyncMock,
+            return_value=non_bare_main,
+        ):
+            app = _make_app("/home/user/repos/project")
+            async with app.run_test(size=(120, 40)) as pilot:
+                await wait_ready(pilot, app)
+                screen = app.screen
+                styled = screen._styled_name(screen.worktrees[0])
+                assert isinstance(styled, Text)
+                assert styled.plain == "project"

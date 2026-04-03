@@ -19,9 +19,9 @@ HELP_TEXT = """\
 [bold cyan]── Worktree List ──[/]
   [bold]c[/]   Create worktree
   [bold]d[/]   Delete worktree
-  [bold]r[/]   Rename worktree
+  [bold]n[/]   Rename worktree
   [bold]b[/]   Back to directory select
-  [bold]F5[/]  Refresh list
+  [bold]r[/]   Refresh list
 
 [bold cyan]── Search ──[/]
   [bold]/[/]       Open search bar

@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import os
+
 from rich.text import Text
 from textual import work
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.events import Key
 from textual.screen import Screen
-from textual.widgets import Button, DataTable, Header, Input, Static
+from textual.widgets import Button, DataTable, Footer, Header, Static
 
 from modules.git import (
     GitError,
@@ -34,10 +35,11 @@ class WorktreeListScreen(Screen):
     """Main dashboard — list and manage worktrees."""
 
     BINDINGS = [
-        Binding("c", "create", "Create"),
-        Binding("d", "delete", "Delete"),
-        Binding("r", "rename", "Rename"),
-        Binding("f5", "refresh", "Refresh"),
+        Binding("c", "create", "Create", show=False),
+        Binding("d", "delete", "Delete", show=False),
+        Binding("n", "rename", "Rename", show=False),
+        Binding("r", "refresh", "Refresh"),
+        Binding("slash", "search", "Search", key_display="/"),
     ]
 
     def __init__(self, repo_dir: str) -> None:
@@ -58,7 +60,8 @@ class WorktreeListScreen(Screen):
             with Horizontal(id="action-bar"):
                 yield Button("\\[C]reate", variant="success", id="create-btn")
                 yield Button("\\[D]elete", variant="error", id="delete-btn")
-                yield Button("\\[R]ename", variant="warning", id="rename-btn")
+                yield Button("Re\\[N]ame", variant="warning", id="rename-btn")
+        yield Footer()
 
     def on_mount(self) -> None:
         table = self.query_one("#wt-table", VimDataTable)
@@ -102,13 +105,21 @@ class WorktreeListScreen(Screen):
         table.clear()
         for wt in self.worktrees:
             table.add_row(
-                wt.name,
+                self._styled_name(wt),
                 wt.branch,
                 wt.head,
                 wt.status,
                 wt.wt_status_display,
                 self._tmux_indicator(wt),
             )
+
+    def _is_main_worktree(self, wt: WorktreeInfo) -> bool:
+        return os.path.realpath(wt.path) == os.path.realpath(self.repo_dir)
+
+    def _styled_name(self, wt: WorktreeInfo) -> str | Text:
+        if self._is_main_worktree(wt):
+            return Text(wt.name, style="bold yellow")
+        return wt.name
 
     def _tmux_indicator(self, wt: WorktreeInfo) -> Text:
         if wt.is_bare:
@@ -183,13 +194,8 @@ class WorktreeListScreen(Screen):
 
     # ── Vim: Search & Help ──
 
-    def on_key(self, event: Key) -> None:
-        if isinstance(self.focused, Input):
-            return
-        if event.key == "slash":
-            self.query_one("#search-bar", SearchBar).show_bar()
-            event.prevent_default()
-            event.stop()
+    def action_search(self) -> None:
+        self.query_one("#search-bar", SearchBar).show_bar()
 
     def on_search_bar_submitted(self, event: SearchBar.Submitted) -> None:
         self._filter_worktrees(event.query)
@@ -204,7 +210,7 @@ class WorktreeListScreen(Screen):
         if not query:
             for wt in self.worktrees:
                 table.add_row(
-                    wt.name,
+                    self._styled_name(wt),
                     wt.branch,
                     wt.head,
                     wt.status,
@@ -222,7 +228,7 @@ class WorktreeListScreen(Screen):
                 or q in wt.wt_status_display.lower()
             ):
                 table.add_row(
-                    wt.name,
+                    self._styled_name(wt),
                     wt.branch,
                     wt.head,
                     wt.status,
@@ -238,7 +244,7 @@ class WorktreeListScreen(Screen):
         table.clear()
         for wt in self.worktrees:
             table.add_row(
-                wt.name,
+                self._styled_name(wt),
                 wt.branch,
                 wt.head,
                 wt.status,

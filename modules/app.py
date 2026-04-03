@@ -22,7 +22,7 @@ class GitWorktreeApp(App):
     CSS_PATH = "../styles.tcss"
     BINDINGS = [
         Binding("q", "quit", "Quit"),
-        Binding("question_mark", "help", "Help [?]"),
+        Binding("question_mark", "help", "Help", key_display="?"),
     ]
 
     def on_mount(self) -> None:
