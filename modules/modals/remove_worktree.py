@@ -66,7 +66,7 @@ class RemoveWorktreeModal(ModalScreen[RemoveWorktreeResult | bool]):
             yield Checkbox("Force delete", value=False, id="force-cb")
             yield Static("", id="dynamic-warning", classes="modal-warning")
             with Horizontal(classes="modal-buttons"):
-                yield Button("\\[D]elete", variant="error", id="confirm-btn")
+                yield Button("\\[Y]es", variant="error", id="confirm-btn")
                 yield Button("\\[N]o", id="cancel-btn")
 
     def on_mount(self) -> None:

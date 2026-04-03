@@ -50,7 +50,7 @@ class TestRemoveWorktreeModalCompose:
             await _wait_ready(pilot)
             confirm = app.screen.query_one("#confirm-btn", Button)
             cancel = app.screen.query_one("#cancel-btn", Button)
-            assert "[D]elete" in confirm.label.plain
+            assert "Y" in confirm.label.plain
             assert "N" in cancel.label.plain
 
     async def test_no_static_warning_for_clean_worktree(
