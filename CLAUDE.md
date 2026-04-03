@@ -17,7 +17,7 @@ Take your time to solve the issue, that is fine. Prefer quality of research and 
 
 ## Project Overview
 
-tt-tmux is a Textual TUI for managing Git worktrees with tmux integration. It targets a hardcoded repo path (`~/projects/turntable`) and provides interactive worktree CRUD, real-time status, and automatic tmux session launching.
+tt-tmux is a Textual TUI for managing Git worktrees with tmux integration. It is evolving into a multi-project launcher: the user configures one or more git repos via `~/.config/tt-tmux/config.toml`, selects a project from a picker on startup, and lands in a worktree manager for that project. It provides interactive worktree CRUD, real-time status, and automatic tmux session launching.
 
 ## Commands
 
@@ -60,7 +60,8 @@ A Claude Code hook auto-runs `ruff format` and `ruff check --fix` on every Pytho
 
 Active development work is tracked in [`ISSUES.md`](./ISSUES.md). It is organized into milestones:
 
-- **M1 Foundation** — config system, domain models (Ticket, PullRequest, Comment), branch↔ticket mapping
+- **M1 Foundation** — config system ✅, domain models (Ticket, PullRequest, Comment), branch↔ticket mapping
+- **M1-B First-Run & Multi-Project UX** — config write support, directory-autocomplete input, first-run setup screen, multi-project config schema, project picker, last-used project memory, in-app project switching
 - **M2 Linear Integration** — GraphQL client, issue/comment fetching, caching
 - **M3 GitHub Integration** — REST client, PR/comment fetching, merge status
 - **M4 TUI Enhancements** — status grouping, ticket/PR columns, detail modals, "Not Started" ghost rows
@@ -156,10 +157,14 @@ E. User Interface Module (TUI Dashboard)
 3. DATA FLOW & WORKFLOW ORCHESTRATION
 
 A. On Startup (Initial Data Load)
- 1. The TUI dashboard queries the External Integration Module for the latest ticket information from Linear and GitHub.
- 2. It also inspects the local git environment via the Git/Worktree Manager to determine which tickets already have a
+ 1. Load `~/.config/tt-tmux/config.toml`. If missing or has no projects configured, show the first-run
+`ProjectSetupScreen` (directory-autocomplete input) so the user can set a repo path; save it and continue.
+ 2. If multiple projects are configured and no last-used project is recorded in
+`~/.local/share/tt-tmux/state.json`, show the `ProjectPickerScreen`. Otherwise go directly to the last-used project.
+ 3. The TUI dashboard queries the External Integration Module for the latest ticket information from Linear and GitHub.
+ 4. It also inspects the local git environment via the Git/Worktree Manager to determine which tickets already have a
 corresponding worktree or branch.
- 3. All gathered data is mapped into your internal data model so that each ticket’s status (e.g., “Not started” vs. “In
+ 5. All gathered data is mapped into your internal data model so that each ticket’s status (e.g., “Not started” vs. “In
 progress”) can be accurately displayed.
 
 B. Dashboard View and Grouping

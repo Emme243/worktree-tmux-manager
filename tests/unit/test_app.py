@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from textual.app import App
 
-from modules.app import REPO_DIR, GitWorktreeApp
+from modules.app import GitWorktreeApp
+from modules.core.config import AppConfig, ConfigError
 from modules.screens.help_overlay import HelpOverlay
 from modules.screens.worktree_list import WorktreeListScreen
+
+
+def _make_config(repo_path: str = "/fake/repo") -> AppConfig:
+    return AppConfig(repo_path=Path(repo_path))
+
 
 # ---------------------------------------------------------------------------
 # Class-level attributes
@@ -30,10 +37,40 @@ class TestGitWorktreeAppSetup:
         keys = [b.key for b in GitWorktreeApp.BINDINGS]
         assert "question_mark" in keys
 
-    def test_repo_dir_is_path(self):
-        from pathlib import Path
 
-        assert isinstance(REPO_DIR, Path)
+# ---------------------------------------------------------------------------
+# _validate_and_start — config error
+# ---------------------------------------------------------------------------
+
+
+class TestValidateAndStartConfigError:
+    async def test_exits_when_config_missing(self):
+        app = GitWorktreeApp()
+        with patch(
+            "modules.app.load_config",
+            side_effect=ConfigError("Config file not found: /fake"),
+        ):
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                assert not any(
+                    isinstance(s, WorktreeListScreen) for s in app.screen_stack
+                )
+
+    async def test_exits_when_config_invalid(self):
+        app = GitWorktreeApp()
+        with patch(
+            "modules.app.load_config",
+            side_effect=ConfigError("Config file is not valid TOML: /fake"),
+        ):
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                assert not any(
+                    isinstance(s, WorktreeListScreen) for s in app.screen_stack
+                )
 
 
 # ---------------------------------------------------------------------------
@@ -44,13 +81,14 @@ class TestGitWorktreeAppSetup:
 class TestValidateAndStartDirMissing:
     async def test_notifies_error_when_dir_missing(self):
         app = GitWorktreeApp()
-        with patch("modules.app.os.path.isdir", return_value=False):
+        with (
+            patch("modules.app.load_config", return_value=_make_config()),
+            patch("modules.app.os.path.isdir", return_value=False),
+        ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await pilot.pause()
                 await app.workers.wait_for_complete()
-                # App should have exited — check that no screen was pushed
-                # (the default screen is the only one)
                 assert not any(
                     isinstance(s, WorktreeListScreen) for s in app.screen_stack
                 )
@@ -65,6 +103,7 @@ class TestValidateAndStartNotGitRepo:
     async def test_notifies_error_when_not_git_repo(self):
         app = GitWorktreeApp()
         with (
+            patch("modules.app.load_config", return_value=_make_config()),
             patch("modules.app.os.path.isdir", return_value=True),
             patch(
                 "modules.git.is_git_repo",
@@ -90,6 +129,7 @@ class TestValidateAndStartSuccess:
     async def test_pushes_worktree_list_screen(self):
         app = GitWorktreeApp()
         with (
+            patch("modules.app.load_config", return_value=_make_config()),
             patch("modules.app.os.path.isdir", return_value=True),
             patch(
                 "modules.git.is_git_repo",
@@ -127,7 +167,10 @@ class TestValidateAndStartSuccess:
 class TestActionToggleDark:
     async def test_toggles_to_light(self):
         app = GitWorktreeApp()
-        with patch("modules.app.os.path.isdir", return_value=False):
+        with (
+            patch("modules.app.load_config", return_value=_make_config()),
+            patch("modules.app.os.path.isdir", return_value=False),
+        ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
@@ -137,7 +180,10 @@ class TestActionToggleDark:
 
     async def test_toggles_to_dark(self):
         app = GitWorktreeApp()
-        with patch("modules.app.os.path.isdir", return_value=False):
+        with (
+            patch("modules.app.load_config", return_value=_make_config()),
+            patch("modules.app.os.path.isdir", return_value=False),
+        ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
@@ -154,7 +200,10 @@ class TestActionToggleDark:
 class TestActionHelp:
     async def test_pushes_help_overlay(self):
         app = GitWorktreeApp()
-        with patch("modules.app.os.path.isdir", return_value=False):
+        with (
+            patch("modules.app.load_config", return_value=_make_config()),
+            patch("modules.app.os.path.isdir", return_value=False),
+        ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
@@ -164,11 +213,13 @@ class TestActionHelp:
 
     async def test_question_mark_key_opens_help(self):
         app = GitWorktreeApp()
-        with patch("modules.app.os.path.isdir", return_value=False):
+        with (
+            patch("modules.app.load_config", return_value=_make_config()),
+            patch("modules.app.os.path.isdir", return_value=False),
+        ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
-                # Directly call the action bound to question_mark
                 app.action_help()
                 await pilot.pause()
                 assert any(isinstance(s, HelpOverlay) for s in app.screen_stack)

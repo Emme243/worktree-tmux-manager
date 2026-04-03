@@ -3,16 +3,14 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from textual import work
 from textual.app import App
 from textual.binding import Binding
 
+from modules.core.config import ConfigError, load_config
 from modules.screens.help_overlay import HelpOverlay
 from modules.screens.worktree_list import WorktreeListScreen
-
-REPO_DIR = Path.home() / "projects" / "turntable"
 
 
 class GitWorktreeApp(App):
@@ -30,7 +28,14 @@ class GitWorktreeApp(App):
 
     @work
     async def _validate_and_start(self) -> None:
-        repo = str(REPO_DIR)
+        try:
+            config = load_config()
+        except ConfigError as exc:
+            self.notify(str(exc), severity="error", timeout=10)
+            self.exit()
+            return
+
+        repo = str(config.repo_path)
 
         if not os.path.isdir(repo):
             self.notify(

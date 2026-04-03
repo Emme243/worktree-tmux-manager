@@ -9,7 +9,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 > Config system and domain models. Everything else depends on this.
 
-- [ ] **M1-01 · Config system** — Replace hardcoded `~/projects/turntable` with a user-editable config file (`~/.config/tt-tmux/config.toml` or `.tt-tmux.toml` in the repo root). Config must hold: `repo_path`, `linear_api_key`, `github_token`, `github_repo` (owner/repo slug), `linear_team_id`. Load at startup; show clear error if missing required keys.
+- [x] **M1-01 · Config system** — Replace hardcoded `~/projects/turntable` with a user-editable config file (`~/.config/tt-tmux/config.toml` or `.tt-tmux.toml` in the repo root). Config must hold: `repo_path`, `linear_api_key`, `github_token`, `github_repo` (owner/repo slug), `linear_team_id`. Load at startup; show clear error if missing required keys.
 
 - [ ] **M1-02 · Domain models — Ticket** — Create `modules/linear/models.py` with a `Ticket` dataclass: `id`, `identifier` (e.g. `ENG-123`), `title`, `status` (enum: `NotStarted | InProgress | InReview | Done | Cancelled`), `branch_name` (Linear's suggested branch), `url`, `assignee`, `updated_at`, `unread_comment_count`. Add a `TicketWorkflowState` enum mapping to dashboard grouping.
 
@@ -18,6 +18,28 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 - [ ] **M1-04 · Branch ↔ Ticket mapping** — A `WorktreeInfo` needs to know its associated Linear ticket (if any). Strategy: match `WorktreeInfo.branch` against `Ticket.branch_name`. Implement `resolve_ticket(worktree: WorktreeInfo, tickets: list[Ticket]) -> Ticket | None` in a new `modules/core/mapping.py`. Also store the resolved mapping in an in-memory registry so it doesn't recompute on every render.
 
 - [ ] **M1-05 · Worktree ↔ PR mapping** — Match `WorktreeInfo.branch` against `PullRequest.head_branch`. Implement `resolve_pr(worktree: WorktreeInfo, prs: list[PullRequest]) -> PullRequest | None` alongside M1-04.
+
+---
+
+## Milestone 1-B — First-Run & Multi-Project UX
+
+> Guided setup on first launch, filesystem-aware path input, and multi-project support. Transforms the app from a single-repo tool into a project launcher. Work these in order — each issue unblocks the next.
+
+- [ ] **M1B-01 · Config write support** — Add `save_config(config: AppConfig, path: Path = CONFIG_PATH) -> None` to `modules/core/config.py`. Add `tomli-w` to `pyproject.toml` runtime deps. Implementation: create parent dirs (`path.parent.mkdir(parents=True, exist_ok=True)`), write to a `.tmp` sibling file, then `rename()` for atomic replacement. Tests in `tests/unit/core/test_config.py`: verify file is written, `repo_path` round-trips, atomic write leaves no tmp file on success.
+
+- [ ] **M1B-02 · DirectoryInput widget** — New `modules/widgets/directory_input.py`. A composed widget (Label + Input + AutoComplete) that provides filesystem tab-completion for directory paths. The `AutoComplete` provider reads the current input value, expands `~`, and lists immediate subdirectories as suggestions. Selecting a suggestion appends it. Supports absolute paths and `~`-prefixed paths. Tests in `tests/unit/widgets/test_directory_input.py`: suggestion list contents, `~` expansion, no suggestions for non-existent prefix.
+
+- [ ] **M1B-03 · Project setup screen** — New `modules/screens/project_setup.py`. `ProjectSetupScreen(mode: Literal["first_run", "add"])`: shown on first launch or when adding a new project. Contains `DirectoryInput` (M1B-02), inline status text, and a confirm button. On confirm: validate path exists (`os.path.isdir`) and is a git repo (`is_git_repo` async) — show inline error text if either fails, do not dismiss. On success: call `save_config()` (M1B-01) and `dismiss(chosen_path)`. Keys: `Enter` confirms, `Escape` exits app in `first_run` mode or dismisses with `None` in `add` mode. Tests cover: renders correctly, inline error on bad path, inline error on non-git dir, success dismisses with path.
+
+- [ ] **M1B-04 · Wire first-run into app startup** — Update `modules/app.py`: when `ConfigError` is caught and the cause is a missing file or missing `repo_path`, push `ProjectSetupScreen(mode="first_run")` instead of notify+exit. On dismiss with a path, continue the normal validation+load flow. On dismiss with `None` (user escaped), exit cleanly. Keep the existing notify+exit for `ConfigError` caused by invalid TOML syntax (not a first-run scenario). Update `tests/unit/test_app.py` accordingly.
+
+- [ ] **M1B-05 · Multi-project config schema** — Add `ProjectConfig(path: Path, name: str)` dataclass to `modules/core/config.py`. `name` defaults to `path.name` (the directory basename). Update `AppConfig`: add `projects: list[ProjectConfig] = field(default_factory=list)`. Migration in `load_config`: if `repo_path` key is present (old single-project format), synthesise a one-element `projects` list from it — do not break existing configs. `save_config` always writes the new `[[projects]]` array format. Tests: old single-`repo_path` config loads as one project, full multi-project round-trip, `name` defaults to directory basename.
+
+- [ ] **M1B-06 · Project picker screen** — New `modules/screens/project_picker.py`. `ProjectPickerScreen`: shown on startup when `len(config.projects) > 1` and no last-used project is recorded (see M1B-07). Displays a `VimDataTable` listing project name + path. Keys: `Enter` opens selected project's worktree list (dismiss with chosen `ProjectConfig`), `a` pushes `ProjectSetupScreen(mode="add")` and appends the result to config, `d` deletes selected project with a confirm modal, `Escape` exits app. Tests: renders project list, `Enter` dismisses with correct project, `a` adds a project, `d` removes with confirm.
+
+- [ ] **M1B-07 · Last-used project persistence** — New `modules/core/state.py` with `AppState(last_project_path: Path | None)`, `load_state() -> AppState`, and `save_state(state: AppState) -> None`. State file: `~/.local/share/tt-tmux/state.json` (create parent dirs on write). Startup logic in `app.py`: if one project → go straight to worktree list; if multiple projects and `last_project_path` matches a configured project → go straight to that worktree list (skip picker); otherwise → show `ProjectPickerScreen`. Save `last_project_path` whenever a project is opened. Tests: round-trip JSON, missing file returns `AppState(last_project_path=None)`, stale path (removed project) falls back to picker.
+
+- [ ] **M1B-08 · In-app project switching** — Add `p` keybinding to `WorktreeListScreen` (`Binding("p", "switch_project", "Switch project")`). Action pushes `ProjectPickerScreen` as a modal (via `push_screen`). On dismiss with a `ProjectConfig`, reload the screen for the new project (update `self.repo_dir`, re-run data load, update title). Also calls `save_state` to update last-used project. Tests: `p` opens picker, dismissing with a project updates `repo_dir` and triggers reload.
 
 ---
 
@@ -116,7 +138,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 ## Backlog (Unscheduled)
 
-- [ ] **B-01 · Multiple repo support** — Config can list multiple `[[repo]]` entries; the TUI shows a repo picker on startup.
+- ~~**B-01 · Multiple repo support**~~ — Promoted to Milestone 1-B (M1B-05 + M1B-06).
 - [ ] **B-02 · Mark issue as "In Progress" on worktree create** — Call Linear `issueUpdate` mutation to move ticket to "In Progress" when a worktree is created.
 - [ ] **B-03 · Open PR from TUI** — From the PR detail modal, add action to open a draft PR on GitHub using `repo.create_pull()`.
 - [ ] **B-04 · Cycle through comments with `n`/`N`** — Vim-style comment navigation in detail modals.
@@ -126,6 +148,8 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 ## Notes
 
+- `tomllib` (stdlib, Python 3.11+) is read-only. `tomli-w` (runtime dep, added in M1B-01) is the write companion — both use the same dict format so round-tripping is lossless.
+- State file (`~/.local/share/tt-tmux/state.json`) is separate from config (`~/.config/tt-tmux/config.toml`) by design: config is user-editable/version-controllable, state is machine-local runtime data.
 - Linear has no official Python SDK. Use `gql[httpx]` (GraphQL client) + direct queries. The TypeScript SDK schema at https://github.com/linear/linear/tree/master/packages/sdk is the best reference for field names.
 - GitHub's PR `mergeable` field is computed async — always retry once on `null`.
 - Linear webhooks require a public HTTPS URL; for local dev use `ngrok` or skip webhooks and rely on polling.
