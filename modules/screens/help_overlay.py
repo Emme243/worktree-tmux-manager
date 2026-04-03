@@ -48,7 +48,7 @@ HELP_SECTIONS: list[tuple[str, list[tuple[str, str]]]] = [
     (
         "Modals",
         [
-            ("Escape", "Cancel & close"),
+            ("Escape / q", "Cancel & close"),
             ("Enter", "Submit / confirm"),
             ("Tab", "Next field"),
             ("j / k", "Scroll help content"),
@@ -63,6 +63,7 @@ class HelpOverlay(ModalScreen[None]):
     BINDINGS = [
         Binding("escape", "dismiss_help", "Close", show=False),
         Binding("question_mark", "dismiss_help", "Close", show=False),
+        Binding("q", "dismiss_help", "Close", show=False),
         Binding("j", "scroll_down", "Scroll down", show=False),
         Binding("k", "scroll_up", "Scroll up", show=False),
     ]

@@ -116,6 +116,14 @@ class TestHelpOverlayDismiss:
             await pilot.pause()
             assert app.modal_result is None
 
+    async def test_q_dismisses_with_none(self):
+        app = HelpOverlayApp()
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            await pilot.press("q")
+            await pilot.pause()
+            assert app.modal_result is None
+
     async def test_j_does_not_dismiss(self):
         app = HelpOverlayApp()
         async with app.run_test(size=(100, 40)) as pilot:

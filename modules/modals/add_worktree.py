@@ -31,7 +31,10 @@ class BranchAutoComplete(AutoComplete):
 class AddWorktreeModal(ModalScreen[bool]):
     """Modal to add a new worktree."""
 
-    BINDINGS = [Binding("escape", "cancel", "Cancel", show=False)]
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel", show=False),
+        Binding("q", "cancel", "Cancel", show=False),
+    ]
 
     def __init__(self, repo_dir: str) -> None:
         super().__init__()

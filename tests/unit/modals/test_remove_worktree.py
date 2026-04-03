@@ -216,6 +216,16 @@ class TestRemoveWorktreeModalCancel:
             await pilot.pause()
             assert app.modal_result is False
 
+    async def test_q_dismisses_false(
+        self, modal_app, clean_worktree, mock_remove_worktree, mock_delete_branch
+    ):
+        app = modal_app(RemoveWorktreeModal("/repo", clean_worktree))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot)
+            await pilot.press("q")
+            await pilot.pause()
+            assert app.modal_result is False
+
 
 # ---------------------------------------------------------------------------
 # Confirm removal

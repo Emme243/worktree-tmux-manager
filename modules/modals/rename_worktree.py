@@ -16,7 +16,10 @@ from modules.git import GitError, move_worktree
 class RenameWorktreeModal(ModalScreen[bool]):
     """Rename a worktree (change its directory name)."""
 
-    BINDINGS = [Binding("escape", "cancel", "Cancel", show=False)]
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel", show=False),
+        Binding("q", "cancel", "Cancel", show=False),
+    ]
 
     def __init__(self, repo_dir: str, wt_path: str) -> None:
         super().__init__()

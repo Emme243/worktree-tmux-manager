@@ -128,6 +128,18 @@ class TestAddWorktreeModalCancel:
             await pilot.pause()
             assert app.modal_result is False
 
+    async def test_q_dismisses_false_when_input_not_focused(
+        self, modal_app, mock_list_branches
+    ):
+        app = modal_app(AddWorktreeModal(repo_dir="/repo"))
+        async with app.run_test(size=(100, 40)) as pilot:
+            await _wait_ready(pilot, app)
+            app.screen.query_one("#cancel-btn").focus()
+            await pilot.pause()
+            await pilot.press("q")
+            await pilot.pause()
+            assert app.modal_result is False
+
 
 # ---------------------------------------------------------------------------
 # Validation
