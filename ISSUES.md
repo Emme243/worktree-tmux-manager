@@ -11,7 +11,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M1-01 · Config system** — Replace hardcoded `~/projects/turntable` with a user-editable config file (`~/.config/tt-tmux/config.toml` or `.tt-tmux.toml` in the repo root). Config must hold: `repo_path`, `linear_api_key`, `github_token`, `github_repo` (owner/repo slug), `linear_team_id`. Load at startup; show clear error if missing required keys.
 
-- [ ] **M1-02 · Domain models — Ticket** — Create `modules/linear/models.py` with a `Ticket` dataclass: `id`, `identifier` (e.g. `ENG-123`), `title`, `status` (enum: `NotStarted | InProgress | InReview | Done | Cancelled`), `branch_name` (Linear's suggested branch), `url`, `assignee`, `updated_at`, `unread_comment_count`. Add a `TicketWorkflowState` enum mapping to dashboard grouping.
+- [x] **M1-02 · Domain models — Ticket** — Create `modules/linear/models.py` with a `Ticket` dataclass: `id`, `identifier` (e.g. `ENG-123`), `title`, `status` (enum: `NotStarted | InProgress | InReview | Done | Cancelled`), `branch_name` (Linear's suggested branch), `url`, `assignee`, `updated_at`, `unread_comment_count`. Add a `TicketWorkflowState` enum mapping to dashboard grouping.
 
 - [ ] **M1-03 · Domain models — PullRequest & Comment** — Create `modules/github/models.py` with `PullRequest` (`number`, `title`, `state`, `url`, `head_branch`, `base_branch`, `merged`, `draft`, `unread_comment_count`, `updated_at`) and `Comment` (`id`, `body`, `author`, `created_at`, `is_read`).
 
