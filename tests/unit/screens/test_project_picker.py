@@ -275,6 +275,16 @@ class TestProjectPickerScreenCancel:
             await pilot.pause()
             assert app.modal_result is None
 
+    async def test_q_dismisses_with_none(self, sample_projects):
+        config = _make_config(sample_projects)
+        screen = ProjectPickerScreen(config)
+        async with ProjectPickerTestApp(screen).run_test(size=(100, 40)) as pilot:
+            app = pilot.app
+            await _wait_ready(pilot, app)
+            await pilot.press("q")
+            await pilot.pause()
+            assert app.modal_result is None
+
 
 # ---------------------------------------------------------------------------
 # _ConfirmDeleteModal — standalone tests
@@ -342,6 +352,27 @@ class TestConfirmDeleteModal:
             app = pilot.app
             await _wait_ready(pilot, app)
             await pilot.press("escape")
+            await pilot.pause()
+            assert app.result is False
+
+    async def test_q_key_dismisses_false(self):
+        class ConfirmTestApp(App[None]):
+            def __init__(self):
+                super().__init__()
+                self.result = _UNSET
+
+            def on_mount(self):
+                self.push_screen(
+                    _ConfirmDeleteModal("my-project"), callback=self._on_dismiss
+                )
+
+            def _on_dismiss(self, result):
+                self.result = result
+
+        async with ConfirmTestApp().run_test(size=(80, 20)) as pilot:
+            app = pilot.app
+            await _wait_ready(pilot, app)
+            await pilot.press("q")
             await pilot.pause()
             assert app.result is False
 

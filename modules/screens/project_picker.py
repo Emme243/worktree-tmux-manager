@@ -19,6 +19,7 @@ class _ConfirmDeleteModal(ModalScreen[bool]):
 
     BINDINGS = [
         Binding("escape", "cancel", "No", show=False),
+        Binding("q", "cancel", "No", show=False),
         Binding("n", "cancel", "No", show=False),
         Binding("y", "confirm", "Yes", show=False),
     ]
@@ -74,6 +75,7 @@ class ProjectPickerScreen(ModalScreen[ProjectConfig | None]):
 
     BINDINGS = [
         Binding("escape", "exit_app", "Exit", show=False),
+        Binding("q", "exit_app", "Exit", show=False),
         Binding("a", "add_project", "Add", show=True),
         Binding("d", "delete_project", "Delete", show=True),
     ]
