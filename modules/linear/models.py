@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 
-class TicketStatus(str, Enum):
+class TicketStatus(StrEnum):
     """Linear issue status values."""
 
     NOT_STARTED = "NotStarted"
@@ -17,7 +17,7 @@ class TicketStatus(str, Enum):
     CANCELLED = "Cancelled"
 
 
-class TicketWorkflowState(str, Enum):
+class TicketWorkflowState(StrEnum):
     """Dashboard grouping for the worktree list screen.
 
     Maps a combination of ticket status and local environment state to one of
