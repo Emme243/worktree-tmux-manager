@@ -25,3 +25,4 @@ htmlcov/
 .claude/settings.local.json
 .claude/skills/
 .agents/
+skills-lock.json
