@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
@@ -17,7 +18,10 @@ from modules.linear.client import (
     LinearNetworkError,
     LinearQueryError,
     _extract_status_code,
+    _map_state_type,
+    _parse_ticket,
 )
+from modules.linear.models import Ticket, TicketStatus
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -283,3 +287,160 @@ class TestExtractStatusCode:
     def test_returns_none_when_no_code(self):
         exc = TransportServerError("something went wrong")
         assert _extract_status_code(exc) is None
+
+
+# ---------------------------------------------------------------------------
+# _map_state_type
+# ---------------------------------------------------------------------------
+
+
+class TestMapStateType:
+    def test_triage_maps_to_not_started(self):
+        assert _map_state_type("triage", "Triage") == TicketStatus.NOT_STARTED
+
+    def test_backlog_maps_to_not_started(self):
+        assert _map_state_type("backlog", "Backlog") == TicketStatus.NOT_STARTED
+
+    def test_unstarted_maps_to_not_started(self):
+        assert _map_state_type("unstarted", "Todo") == TicketStatus.NOT_STARTED
+
+    def test_started_maps_to_in_progress(self):
+        assert _map_state_type("started", "In Progress") == TicketStatus.IN_PROGRESS
+
+    def test_started_with_review_name_maps_to_in_review(self):
+        assert _map_state_type("started", "In Review") == TicketStatus.IN_REVIEW
+
+    def test_started_with_review_name_case_insensitive(self):
+        assert _map_state_type("started", "code review") == TicketStatus.IN_REVIEW
+
+    def test_unknown_type_defaults_to_not_started(self):
+        assert _map_state_type("unknown", "Something") == TicketStatus.NOT_STARTED
+
+
+# ---------------------------------------------------------------------------
+# _parse_ticket
+# ---------------------------------------------------------------------------
+
+_SAMPLE_NODE = {
+    "id": "issue_1",
+    "identifier": "ENG-42",
+    "title": "Fix the bug",
+    "state": {"name": "In Progress", "type": "started"},
+    "branchName": "eng-42-fix-the-bug",
+    "url": "https://linear.app/team/issue/ENG-42",
+    "assignee": {"name": "Alice"},
+    "updatedAt": "2025-01-15T10:30:00.000Z",
+    "comments": {"totalCount": 3},
+}
+
+
+class TestParseTicket:
+    def test_parses_full_node(self):
+        ticket = _parse_ticket(_SAMPLE_NODE)
+        assert ticket.id == "issue_1"
+        assert ticket.identifier == "ENG-42"
+        assert ticket.title == "Fix the bug"
+        assert ticket.status == TicketStatus.IN_PROGRESS
+        assert ticket.branch_name == "eng-42-fix-the-bug"
+        assert ticket.url == "https://linear.app/team/issue/ENG-42"
+        assert ticket.assignee == "Alice"
+        assert ticket.unread_comment_count == 3
+
+    def test_missing_branch_name_defaults_empty(self):
+        node = {**_SAMPLE_NODE, "branchName": None}
+        ticket = _parse_ticket(node)
+        assert ticket.branch_name == ""
+
+    def test_missing_assignee_returns_none(self):
+        node = {**_SAMPLE_NODE, "assignee": None}
+        ticket = _parse_ticket(node)
+        assert ticket.assignee is None
+
+    def test_missing_comments_defaults_zero(self):
+        node = {**_SAMPLE_NODE, "comments": None}
+        ticket = _parse_ticket(node)
+        assert ticket.unread_comment_count == 0
+
+    def test_updated_at_is_utc_datetime(self):
+        from datetime import datetime
+
+        ticket = _parse_ticket(_SAMPLE_NODE)
+        assert isinstance(ticket.updated_at, datetime)
+        assert ticket.updated_at.tzinfo == UTC
+
+    def test_returns_ticket_instance(self):
+        ticket = _parse_ticket(_SAMPLE_NODE)
+        assert isinstance(ticket, Ticket)
+
+
+# ---------------------------------------------------------------------------
+# fetch_my_issues
+# ---------------------------------------------------------------------------
+
+
+class TestFetchMyIssues:
+    @pytest.fixture()
+    async def connected(self):
+        """Yield (client, mock_session) with a connected LinearClient."""
+        client = LinearClient(api_key=_DUMMY_KEY)
+        mock_session = AsyncMock()
+        with (
+            patch.object(
+                client._client, "connect_async", new_callable=AsyncMock
+            ) as mock_connect,
+            patch.object(client._client, "close_async", new_callable=AsyncMock),
+        ):
+            mock_connect.return_value = mock_session
+            async with client:
+                yield client, mock_session
+
+    def _make_response(self, nodes: list[dict]) -> dict:
+        return {"viewer": {"assignedIssues": {"nodes": nodes}}}
+
+    async def test_returns_tickets(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = self._make_response([_SAMPLE_NODE])
+
+        tickets = await client.fetch_my_issues("team_123")
+        assert len(tickets) == 1
+        assert tickets[0].identifier == "ENG-42"
+
+    async def test_empty_response(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = self._make_response([])
+
+        tickets = await client.fetch_my_issues("team_123")
+        assert tickets == []
+
+    async def test_multiple_issues(self, connected):
+        client, mock_session = connected
+        node2 = {**_SAMPLE_NODE, "id": "issue_2", "identifier": "ENG-43"}
+        mock_session.execute.return_value = self._make_response([_SAMPLE_NODE, node2])
+
+        tickets = await client.fetch_my_issues("team_123")
+        assert len(tickets) == 2
+        assert tickets[1].identifier == "ENG-43"
+
+    async def test_passes_team_id_variable(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = self._make_response([])
+
+        await client.fetch_my_issues("team_abc")
+        _, kwargs = mock_session.execute.call_args
+        assert kwargs["variable_values"] == {"teamId": "team_abc"}
+
+    async def test_propagates_auth_error(self, connected):
+        client, mock_session = connected
+        exc = TransportServerError("401 Unauthorized")
+        exc.code = 401
+        mock_session.execute.side_effect = exc
+
+        with pytest.raises(LinearAuthError):
+            await client.fetch_my_issues("team_123")
+
+    async def test_propagates_network_error(self, connected):
+        client, mock_session = connected
+        mock_session.execute.side_effect = ConnectionError("timeout")
+
+        with pytest.raises(LinearNetworkError):
+            await client.fetch_my_issues("team_123")

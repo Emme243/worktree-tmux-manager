@@ -50,9 +50,9 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 > Schema: https://github.com/linear/linear/tree/master/packages/sdk
 > Python GraphQL client: https://github.com/graphql-python/gql
 
-- [ ] **M2-01 · Linear GraphQL client** — Create `modules/linear/client.py` using the `gql` library with `httpx` transport. Authenticate via Bearer token (`Authorization: Bearer {api_key}`). Implement `LinearClient` class with async methods. Add `gql[httpx]` and `httpx` to `pyproject.toml` runtime deps.
+- [x] **M2-01 · Linear GraphQL client** — Create `modules/linear/client.py` using the `gql` library with `httpx` transport. Authenticate via Bearer token (`Authorization: Bearer {api_key}`). Implement `LinearClient` class with async methods. Add `gql[httpx]` and `httpx` to `pyproject.toml` runtime deps.
 
-- [ ] **M2-02 · Fetch assigned issues** — Implement `LinearClient.fetch_my_issues(team_id: str) -> list[Ticket]`. GraphQL query should fetch: `id`, `identifier`, `title`, `state { name, type }`, `branchName`, `url`, `assignee { name }`, `updatedAt`, `comments { totalCount }`. Filter to issues assigned to the authenticated user and in active states (not `cancelled`/`completed`).
+- [x] **M2-02 · Fetch assigned issues** — Implement `LinearClient.fetch_my_issues(team_id: str) -> list[Ticket]`. GraphQL query should fetch: `id`, `identifier`, `title`, `state { name, type }`, `branchName`, `url`, `assignee { name }`, `updatedAt`, `comments { totalCount }`. Filter to issues assigned to the authenticated user and in active states (not `cancelled`/`completed`).
 
 - [ ] **M2-03 · Fetch issue comments** — Implement `LinearClient.fetch_issue_comments(issue_id: str) -> list[Comment]`. Use the `issue(id:) { comments { nodes { id, body, createdAt, user { name } } } }` query. Mark comments as read/unread by comparing `updatedAt` against a local timestamp store (see M5-01).
 

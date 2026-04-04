@@ -10,6 +10,27 @@ A terminal UI for managing Git worktrees with tmux integration, built with [Text
 - **Vim-style navigation** — `j`/`k` movement, `gg`/`G` jumps, `/` search
 - **Search & filter** — Filter worktrees by name, branch, or status
 
+## Configuration
+
+On first launch the app creates `~/.config/tt-tmux/config.toml`. You can also create it manually:
+
+```toml
+# Required — at least one project
+[[projects]]
+path = "~/projects/my-repo"
+name = "my-repo"
+
+# Optional — Linear integration
+linear_api_key = "lin_api_..."   # Settings → API → Personal API keys
+linear_team_id = "TEAM_UUID"     # Team Settings → General → copy the team ID
+
+# Optional — GitHub integration
+github_token = "ghp_..."         # github.com → Settings → Developer settings → Personal access tokens
+github_repo = "owner/repo"
+```
+
+To get your Linear API key, go to **Linear → Settings → API → Personal API keys** and create one. The team ID is a UUID found under **Team Settings → General**.
+
 ## Prerequisites
 
 - **Git** (with worktree support)
