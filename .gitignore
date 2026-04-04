@@ -23,7 +23,8 @@ htmlcov/
 
 # Claude Code
 .claude/settings.local.json
-.claude/skills/
+.claude/skills/clean-code-principles
+.claude/skills/python-testing-patterns
 .agents/
 skills-lock.json
 
