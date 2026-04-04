@@ -26,3 +26,6 @@ htmlcov/
 .claude/skills/
 .agents/
 skills-lock.json
+
+# Task working state (ephemeral per-task plan)
+tasks/todo.md
