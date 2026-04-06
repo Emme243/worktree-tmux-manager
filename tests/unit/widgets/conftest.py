@@ -7,6 +7,7 @@ from textual.app import App, ComposeResult
 
 from modules.widgets.directory_input import DirectoryInput
 from modules.widgets.search_bar import SearchBar
+from modules.widgets.secret_input import SecretInput
 from modules.widgets.vim_data_table import VimDataTable
 
 # ---------------------------------------------------------------------------
@@ -59,6 +60,27 @@ class VimDataTableApp(App):
         table.cursor_type = "row"
 
 
+class SecretInputApp(App):
+    """Host app that mounts a single SecretInput."""
+
+    CSS = """
+    SecretInput { height: auto; }
+    """
+
+    def __init__(
+        self, label: str = "API Key:", placeholder: str = "", hint: str = ""
+    ) -> None:
+        super().__init__()
+        self._label = label
+        self._placeholder = placeholder
+        self._hint = hint
+
+    def compose(self) -> ComposeResult:
+        yield SecretInput(
+            label=self._label, placeholder=self._placeholder, hint=self._hint
+        )
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -80,3 +102,9 @@ def vim_table_app():
 def directory_input_app():
     """Return a DirectoryInputApp instance."""
     return DirectoryInputApp()
+
+
+@pytest.fixture
+def secret_input_app():
+    """Return a SecretInputApp instance."""
+    return SecretInputApp()
