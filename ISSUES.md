@@ -92,9 +92,9 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M3-02 · Fetch open PRs** — Implement `GitHubClient.fetch_open_prs() -> list[PullRequest]`. Use `repo.get_pulls(state="open")`. Map PyGithub `PullRequest` objects to our domain `PullRequest` dataclass.
 
-- [ ] **M3-03 · Fetch PR comments** — Implement `GitHubClient.fetch_pr_comments(pr_number: int) -> list[Comment]`. Use `repo.get_pull(pr_number).get_issue_comments()` (general comments) and `.get_review_comments()` (inline diff comments). Merge and sort by `created_at`.
+- [x] **M3-03 · Fetch PR comments** — Implement `GitHubClient.fetch_pr_comments(pr_number: int) -> list[Comment]`. Use `repo.get_pull(pr_number).get_issue_comments()` (general comments) and `.get_review_comments()` (inline diff comments). Merge and sort by `created_at`.
 
-- [ ] **M3-04 · Check PR merge status** — Implement `GitHubClient.get_pr_merge_status(pr_number: int) -> str`. Returns one of: `"open"`, `"merged"`, `"closed"`, `"draft"`. Handle the null-mergeable case (retry once after 1s).
+- [x] **M3-04 · Check PR merge status** — Implement `GitHubClient.get_pr_merge_status(pr_number: int) -> str`. Returns one of: `"open"`, `"merged"`, `"closed"`, `"draft"`. Handle the null-mergeable case (retry once after 1s).
 
 - [ ] **M3-05 · GitHub data cache** — Mirror of M2-05 for GitHub data. `GitHubCache` with TTL and webhook-based invalidation.
 

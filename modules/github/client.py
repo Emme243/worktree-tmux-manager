@@ -28,6 +28,7 @@ __all__ = [
     "GitHubNetworkError",
     "GitHubNotFoundError",
     "GitHubRateLimitError",
+    "_determine_pr_state",
     "_parse_comment",
     "_parse_pull_request",
 ]
@@ -193,6 +194,28 @@ class GitHubClient:
 
         return await self._run_sync(_fetch)
 
+    async def get_pr_merge_status(self, pr_number: int) -> str:
+        """Return the merge status of a pull request.
+
+        Returns one of ``"open"``, ``"merged"``, ``"closed"``, ``"draft"``.
+
+        GitHub computes the ``mergeable`` field asynchronously, so the first
+        fetch may return ``None``.  When that happens this method sleeps 1 s
+        and re-fetches the PR once before determining the status.
+        """
+        repo = self._require_repo()
+
+        def _fetch() -> str:
+            import time
+
+            pr = repo.get_pull(pr_number)
+            if pr.mergeable is None:
+                time.sleep(1)
+                pr = repo.get_pull(pr_number)
+            return _determine_pr_state(pr)
+
+        return await self._run_sync(_fetch)
+
 
 # --- Response parsing ---
 
@@ -214,16 +237,20 @@ def _parse_comment(comment: object) -> Comment:
     )
 
 
+def _determine_pr_state(pr: GHPullRequest) -> str:
+    """Determine the merge status string for a PyGithub PullRequest."""
+    if pr.draft:
+        return PRState.DRAFT.value
+    if pr.merged:
+        return PRState.MERGED.value
+    if pr.state == "closed":
+        return PRState.CLOSED.value
+    return PRState.OPEN.value
+
+
 def _parse_pull_request(pr: GHPullRequest) -> PullRequest:
     """Convert a PyGithub PullRequest to a domain PullRequest."""
-    if pr.draft:
-        state = PRState.DRAFT
-    elif pr.merged:
-        state = PRState.MERGED
-    elif pr.state == "closed":
-        state = PRState.CLOSED
-    else:
-        state = PRState.OPEN
+    state = PRState(_determine_pr_state(pr))
 
     return PullRequest(
         number=pr.number,

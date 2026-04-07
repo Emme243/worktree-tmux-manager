@@ -22,6 +22,7 @@ from modules.github.client import (
     GitHubNetworkError,
     GitHubNotFoundError,
     GitHubRateLimitError,
+    _determine_pr_state,
     _parse_comment,
     _parse_pull_request,
 )
@@ -574,3 +575,126 @@ class TestFetchPRComments:
         )
         with pytest.raises(GitHubNotFoundError):
             await connected_client.fetch_pr_comments(999)
+
+
+# ---------------------------------------------------------------------------
+# _determine_pr_state
+# ---------------------------------------------------------------------------
+
+
+class TestDeterminePRState:
+    def test_draft_pr(self):
+        pr = _make_mock_pr(state="open", draft=True)
+        assert _determine_pr_state(pr) == "draft"
+
+    def test_merged_pr(self):
+        pr = _make_mock_pr(state="closed", merged=True)
+        assert _determine_pr_state(pr) == "merged"
+
+    def test_closed_pr(self):
+        pr = _make_mock_pr(state="closed", merged=False)
+        assert _determine_pr_state(pr) == "closed"
+
+    def test_open_pr(self):
+        pr = _make_mock_pr(state="open", draft=False, merged=False)
+        assert _determine_pr_state(pr) == "open"
+
+    def test_draft_takes_priority_over_merged(self):
+        pr = _make_mock_pr(state="closed", draft=True, merged=True)
+        assert _determine_pr_state(pr) == "draft"
+
+
+# ---------------------------------------------------------------------------
+# get_pr_merge_status
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+class TestGetPRMergeStatus:
+    @pytest.fixture
+    def connected_client(self):
+        client = GitHubClient(token=_DUMMY_TOKEN, repo_slug=_DUMMY_SLUG)
+        client._gh = MagicMock()
+        client._repo = MagicMock()
+        return client
+
+    async def test_returns_open(self, connected_client):
+        mock_pr = _make_mock_pr(state="open", draft=False, merged=False)
+        mock_pr.mergeable = True
+        connected_client._repo.get_pull.return_value = mock_pr
+
+        result = await connected_client.get_pr_merge_status(42)
+        assert result == "open"
+
+    async def test_returns_merged(self, connected_client):
+        mock_pr = _make_mock_pr(state="closed", merged=True)
+        mock_pr.mergeable = False
+        connected_client._repo.get_pull.return_value = mock_pr
+
+        result = await connected_client.get_pr_merge_status(42)
+        assert result == "merged"
+
+    async def test_returns_closed(self, connected_client):
+        mock_pr = _make_mock_pr(state="closed", merged=False)
+        mock_pr.mergeable = False
+        connected_client._repo.get_pull.return_value = mock_pr
+
+        result = await connected_client.get_pr_merge_status(42)
+        assert result == "closed"
+
+    async def test_returns_draft(self, connected_client):
+        mock_pr = _make_mock_pr(state="open", draft=True)
+        mock_pr.mergeable = True
+        connected_client._repo.get_pull.return_value = mock_pr
+
+        result = await connected_client.get_pr_merge_status(42)
+        assert result == "draft"
+
+    async def test_retries_on_null_mergeable(self, connected_client):
+        first_pr = _make_mock_pr(state="open")
+        first_pr.mergeable = None
+        second_pr = _make_mock_pr(state="open")
+        second_pr.mergeable = True
+        connected_client._repo.get_pull.side_effect = [first_pr, second_pr]
+
+        with patch("time.sleep") as mock_sleep:
+            result = await connected_client.get_pr_merge_status(42)
+
+        assert result == "open"
+        mock_sleep.assert_called_once_with(1)
+        assert connected_client._repo.get_pull.call_count == 2
+
+    async def test_returns_status_even_if_mergeable_still_none_after_retry(
+        self, connected_client
+    ):
+        mock_pr = _make_mock_pr(state="open")
+        mock_pr.mergeable = None
+        connected_client._repo.get_pull.return_value = mock_pr
+
+        with patch("time.sleep"):
+            result = await connected_client.get_pr_merge_status(42)
+
+        assert result == "open"
+        assert connected_client._repo.get_pull.call_count == 2
+
+    async def test_no_retry_when_mergeable_is_set(self, connected_client):
+        mock_pr = _make_mock_pr(state="open")
+        mock_pr.mergeable = True
+        connected_client._repo.get_pull.return_value = mock_pr
+
+        result = await connected_client.get_pr_merge_status(42)
+
+        assert result == "open"
+        connected_client._repo.get_pull.assert_called_once_with(42)
+
+    async def test_raises_when_not_connected(self):
+        client = GitHubClient(token=_DUMMY_TOKEN, repo_slug=_DUMMY_SLUG)
+        with pytest.raises(GitHubClientError, match="not connected"):
+            await client.get_pr_merge_status(1)
+
+    async def test_propagates_not_found_error(self, connected_client):
+        connected_client._repo.get_pull.side_effect = _make_github_exc(
+            UnknownObjectException, 404, "Not Found"
+        )
+        with pytest.raises(GitHubNotFoundError):
+            await connected_client.get_pr_merge_status(999)
