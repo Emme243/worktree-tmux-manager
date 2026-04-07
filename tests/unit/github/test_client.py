@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -21,7 +22,9 @@ from modules.github.client import (
     GitHubNetworkError,
     GitHubNotFoundError,
     GitHubRateLimitError,
+    _parse_pull_request,
 )
+from modules.github.models import PRState, PullRequest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -337,3 +340,115 @@ class TestRequireRepo:
         mock_repo = MagicMock()
         client._repo = mock_repo
         assert client._require_repo() is mock_repo
+
+
+# ---------------------------------------------------------------------------
+# _parse_pull_request
+# ---------------------------------------------------------------------------
+
+_SAMPLE_UPDATED_AT = datetime(2025, 1, 15, 12, 0, 0)
+
+
+def _make_mock_pr(**overrides):
+    """Create a MagicMock mimicking a PyGithub PullRequest."""
+    pr = MagicMock()
+    pr.number = overrides.get("number", 42)
+    pr.title = overrides.get("title", "Fix the thing")
+    pr.state = overrides.get("state", "open")
+    pr.html_url = overrides.get("html_url", "https://github.com/owner/repo/pull/42")
+    pr.head.ref = overrides.get("head_ref", "feature-branch")
+    pr.base.ref = overrides.get("base_ref", "main")
+    pr.merged = overrides.get("merged", False)
+    pr.draft = overrides.get("draft", False)
+    pr.updated_at = overrides.get("updated_at", _SAMPLE_UPDATED_AT)
+    return pr
+
+
+class TestParsePullRequest:
+    def test_parses_open_pr(self):
+        pr = _make_mock_pr()
+        result = _parse_pull_request(pr)
+        assert isinstance(result, PullRequest)
+        assert result.number == 42
+        assert result.title == "Fix the thing"
+        assert result.state == PRState.OPEN
+        assert result.url == "https://github.com/owner/repo/pull/42"
+        assert result.head_branch == "feature-branch"
+        assert result.base_branch == "main"
+        assert result.merged is False
+        assert result.draft is False
+        assert result.updated_at == _SAMPLE_UPDATED_AT
+
+    def test_draft_pr_has_draft_state(self):
+        pr = _make_mock_pr(state="open", draft=True)
+        result = _parse_pull_request(pr)
+        assert result.state == PRState.DRAFT
+
+    def test_merged_pr_has_merged_state(self):
+        pr = _make_mock_pr(state="closed", merged=True)
+        result = _parse_pull_request(pr)
+        assert result.state == PRState.MERGED
+
+    def test_closed_pr_has_closed_state(self):
+        pr = _make_mock_pr(state="closed", merged=False)
+        result = _parse_pull_request(pr)
+        assert result.state == PRState.CLOSED
+
+    def test_unread_comment_count_is_zero(self):
+        pr = _make_mock_pr()
+        result = _parse_pull_request(pr)
+        assert result.unread_comment_count == 0
+
+
+# ---------------------------------------------------------------------------
+# fetch_open_prs
+# ---------------------------------------------------------------------------
+
+
+class TestFetchOpenPRs:
+    @pytest.fixture()
+    def connected_client(self):
+        """Return a GitHubClient with _repo set (without actual connect)."""
+        client = GitHubClient(token=_DUMMY_TOKEN, repo_slug=_DUMMY_SLUG)
+        client._gh = MagicMock()
+        client._repo = MagicMock()
+        return client
+
+    async def test_returns_domain_pull_requests(self, connected_client):
+        mock_pr = _make_mock_pr()
+        connected_client._repo.get_pulls.return_value = [mock_pr]
+        result = await connected_client.fetch_open_prs()
+        assert len(result) == 1
+        assert isinstance(result[0], PullRequest)
+        assert result[0].number == 42
+
+    async def test_empty_response(self, connected_client):
+        connected_client._repo.get_pulls.return_value = []
+        result = await connected_client.fetch_open_prs()
+        assert result == []
+
+    async def test_multiple_prs(self, connected_client):
+        pr1 = _make_mock_pr(number=1, title="First")
+        pr2 = _make_mock_pr(number=2, title="Second")
+        connected_client._repo.get_pulls.return_value = [pr1, pr2]
+        result = await connected_client.fetch_open_prs()
+        assert len(result) == 2
+        assert result[0].number == 1
+        assert result[1].number == 2
+
+    async def test_calls_get_pulls_with_state_open(self, connected_client):
+        connected_client._repo.get_pulls.return_value = []
+        await connected_client.fetch_open_prs()
+        connected_client._repo.get_pulls.assert_called_once_with(state="open")
+
+    async def test_raises_when_not_connected(self):
+        client = GitHubClient(token=_DUMMY_TOKEN, repo_slug=_DUMMY_SLUG)
+        with pytest.raises(GitHubClientError, match="not connected"):
+            await client.fetch_open_prs()
+
+    async def test_propagates_rate_limit_error(self, connected_client):
+        connected_client._repo.get_pulls.side_effect = _make_github_exc(
+            RateLimitExceededException, 403, "Rate limit"
+        )
+        with pytest.raises(GitHubRateLimitError):
+            await connected_client.fetch_open_prs()

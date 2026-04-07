@@ -15,9 +15,11 @@ from github import (
     RateLimitExceededException,
     UnknownObjectException,
 )
+from github.PullRequest import PullRequest as GHPullRequest
 from github.Repository import Repository
 
 from modules.core.config import AppConfig
+from modules.github.models import PRState, PullRequest
 
 __all__ = [
     "GitHubAuthError",
@@ -26,6 +28,7 @@ __all__ = [
     "GitHubNetworkError",
     "GitHubNotFoundError",
     "GitHubRateLimitError",
+    "_parse_pull_request",
 ]
 
 T = TypeVar("T")
@@ -161,3 +164,39 @@ class GitHubClient:
             raise GitHubNetworkError(str(exc)) from exc
         except Exception as exc:
             raise GitHubNetworkError(str(exc)) from exc
+
+    # -- Domain queries --
+
+    async def fetch_open_prs(self) -> list[PullRequest]:
+        """Fetch all open pull requests for the configured repository."""
+        repo = self._require_repo()
+        pulls = await self._run_sync(lambda: list(repo.get_pulls(state="open")))
+        return [_parse_pull_request(pr) for pr in pulls]
+
+
+# --- Response parsing ---
+
+
+def _parse_pull_request(pr: GHPullRequest) -> PullRequest:
+    """Convert a PyGithub PullRequest to a domain PullRequest."""
+    if pr.draft:
+        state = PRState.DRAFT
+    elif pr.merged:
+        state = PRState.MERGED
+    elif pr.state == "closed":
+        state = PRState.CLOSED
+    else:
+        state = PRState.OPEN
+
+    return PullRequest(
+        number=pr.number,
+        title=pr.title,
+        state=state,
+        url=pr.html_url,
+        head_branch=pr.head.ref,
+        base_branch=pr.base.ref,
+        merged=pr.merged,
+        draft=pr.draft,
+        updated_at=pr.updated_at,
+        unread_comment_count=0,
+    )

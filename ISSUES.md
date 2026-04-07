@@ -90,7 +90,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M3-01 · GitHub REST client** — Create `modules/github/client.py` using `PyGithub`. Authenticate with personal access token. Implement `GitHubClient` class wrapping a `github.Github` instance. Add `PyGithub` to `pyproject.toml`. Expose `async`-friendly wrappers using `asyncio.to_thread()` (PyGithub is synchronous).
 
-- [ ] **M3-02 · Fetch open PRs** — Implement `GitHubClient.fetch_open_prs() -> list[PullRequest]`. Use `repo.get_pulls(state="open")`. Map PyGithub `PullRequest` objects to our domain `PullRequest` dataclass.
+- [x] **M3-02 · Fetch open PRs** — Implement `GitHubClient.fetch_open_prs() -> list[PullRequest]`. Use `repo.get_pulls(state="open")`. Map PyGithub `PullRequest` objects to our domain `PullRequest` dataclass.
 
 - [ ] **M3-03 · Fetch PR comments** — Implement `GitHubClient.fetch_pr_comments(pr_number: int) -> list[Comment]`. Use `repo.get_pull(pr_number).get_issue_comments()` (general comments) and `.get_review_comments()` (inline diff comments). Merge and sort by `created_at`.
 
