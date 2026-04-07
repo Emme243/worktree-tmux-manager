@@ -10,12 +10,13 @@ from modules.core.mapping import (
     MappingRegistry,
     WorktreeMapping,
     _normalize_branch,
+    classify_workflow_state,
     resolve_pr,
     resolve_ticket,
 )
 from modules.git.models import WorktreeInfo
 from modules.github.models import PRState, PullRequest
-from modules.linear.models import Ticket, TicketStatus
+from modules.linear.models import Ticket, TicketStatus, TicketWorkflowState
 
 # ---------------------------------------------------------------------------
 # Helpers / factories
@@ -327,3 +328,161 @@ class TestMappingRegistryRefresh:
         registry.refresh([], [ticket], [])
 
         assert registry.all_mappings() == []
+
+
+# ---------------------------------------------------------------------------
+# classify_workflow_state
+# ---------------------------------------------------------------------------
+
+
+class TestClassifyWorkflowState:
+    def test_open_pr_returns_under_review(self):
+        wt = make_worktree("feature-x")
+        pr = make_pr("feature-x")
+        assert classify_workflow_state(wt, None, pr) == TicketWorkflowState.UNDER_REVIEW
+
+    def test_draft_pr_returns_under_review(self):
+        wt = make_worktree("feature-x")
+        pr = make_pr("feature-x")
+        pr.state = PRState.DRAFT
+        assert classify_workflow_state(wt, None, pr) == TicketWorkflowState.UNDER_REVIEW
+
+    def test_merged_pr_not_under_review(self):
+        wt = make_worktree("feature-x")
+        pr = make_pr("feature-x")
+        pr.state = PRState.MERGED
+        assert (
+            classify_workflow_state(wt, None, pr)
+            == TicketWorkflowState.WORKTREE_CREATED
+        )
+
+    def test_in_progress_ticket_with_worktree(self):
+        wt = make_worktree("feature-x")
+        ticket = make_ticket("feature-x")
+        ticket.status = TicketStatus.IN_PROGRESS
+        assert (
+            classify_workflow_state(wt, ticket, None)
+            == TicketWorkflowState.CODING_IN_PROGRESS
+        )
+
+    def test_in_review_ticket_with_worktree(self):
+        wt = make_worktree("feature-x")
+        ticket = make_ticket("feature-x")
+        ticket.status = TicketStatus.IN_REVIEW
+        assert (
+            classify_workflow_state(wt, ticket, None)
+            == TicketWorkflowState.CODING_IN_PROGRESS
+        )
+
+    def test_not_started_ticket_with_worktree(self):
+        wt = make_worktree("feature-x")
+        ticket = make_ticket("feature-x")
+        ticket.status = TicketStatus.NOT_STARTED
+        assert (
+            classify_workflow_state(wt, ticket, None)
+            == TicketWorkflowState.WORKTREE_CREATED
+        )
+
+    def test_worktree_without_ticket_or_pr(self):
+        wt = make_worktree("feature-x")
+        assert (
+            classify_workflow_state(wt, None, None)
+            == TicketWorkflowState.WORKTREE_CREATED
+        )
+
+    def test_ticket_without_worktree(self):
+        ticket = make_ticket("feature-x")
+        assert (
+            classify_workflow_state(None, ticket, None)
+            == TicketWorkflowState.NOT_STARTED
+        )
+
+    def test_pr_takes_priority_over_ticket(self):
+        """Open PR should win even if ticket is in progress."""
+        wt = make_worktree("feature-x")
+        ticket = make_ticket("feature-x")
+        ticket.status = TicketStatus.IN_PROGRESS
+        pr = make_pr("feature-x")
+        assert (
+            classify_workflow_state(wt, ticket, pr) == TicketWorkflowState.UNDER_REVIEW
+        )
+
+    def test_no_worktree_no_ticket_no_pr(self):
+        assert (
+            classify_workflow_state(None, None, None)
+            == TicketWorkflowState.WORKTREE_CREATED
+        )
+
+
+# ---------------------------------------------------------------------------
+# MappingRegistry — workflow state & unmatched tickets
+# ---------------------------------------------------------------------------
+
+
+class TestMappingRegistryWorkflowState:
+    def test_get_workflow_state_with_pr(self):
+        registry = MappingRegistry()
+        wt = make_worktree("feature-x", "/repo/wt")
+        pr = make_pr("feature-x")
+        registry.refresh([wt], [], [pr])
+
+        assert (
+            registry.get_workflow_state("/repo/wt") == TicketWorkflowState.UNDER_REVIEW
+        )
+
+    def test_get_workflow_state_with_in_progress_ticket(self):
+        registry = MappingRegistry()
+        wt = make_worktree("feature-x", "/repo/wt")
+        ticket = make_ticket("feature-x")
+        ticket.status = TicketStatus.IN_PROGRESS
+        registry.refresh([wt], [ticket], [])
+
+        assert (
+            registry.get_workflow_state("/repo/wt")
+            == TicketWorkflowState.CODING_IN_PROGRESS
+        )
+
+    def test_get_workflow_state_no_ticket_no_pr(self):
+        registry = MappingRegistry()
+        wt = make_worktree("feature-x", "/repo/wt")
+        registry.refresh([wt], [], [])
+
+        assert (
+            registry.get_workflow_state("/repo/wt")
+            == TicketWorkflowState.WORKTREE_CREATED
+        )
+
+    def test_get_workflow_state_unknown_path(self):
+        registry = MappingRegistry()
+        assert (
+            registry.get_workflow_state("/unknown")
+            == TicketWorkflowState.WORKTREE_CREATED
+        )
+
+    def test_unmatched_tickets_found(self):
+        registry = MappingRegistry()
+        wt = make_worktree("feature-x", "/repo/wt")
+        matched_ticket = make_ticket("feature-x", "ENG-1")
+        unmatched_ticket = make_ticket("feature-y", "ENG-2")
+        registry.refresh([wt], [matched_ticket, unmatched_ticket], [])
+
+        assert registry.unmatched_tickets == [unmatched_ticket]
+
+    def test_unmatched_tickets_empty_when_all_matched(self):
+        registry = MappingRegistry()
+        wt = make_worktree("feature-x", "/repo/wt")
+        ticket = make_ticket("feature-x")
+        registry.refresh([wt], [ticket], [])
+
+        assert registry.unmatched_tickets == []
+
+    def test_unmatched_tickets_all_unmatched_when_no_worktrees(self):
+        registry = MappingRegistry()
+        ticket = make_ticket("feature-x")
+        registry.refresh([], [ticket], [])
+
+        assert registry.unmatched_tickets == [ticket]
+
+    def test_unmatched_tickets_empty_before_refresh(self):
+        registry = MappingRegistry()
+        assert registry.unmatched_tickets == []

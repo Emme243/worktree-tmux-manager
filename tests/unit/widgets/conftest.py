@@ -60,6 +60,34 @@ class VimDataTableApp(App):
         table.cursor_type = "row"
 
 
+class VimDataTableWithHeadersApp(App):
+    """Host app with header rows interspersed for testing skip logic."""
+
+    CSS = """
+    VimDataTable { height: 1fr; }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield VimDataTable()
+
+    def on_mount(self) -> None:
+        table = self.query_one(VimDataTable)
+        table.add_columns("Name", "Value")
+        # Row 0: header
+        table.add_header_row("== Group A ==", "")
+        # Row 1: data
+        table.add_row("item-0", "val-0")
+        # Row 2: data
+        table.add_row("item-1", "val-1")
+        # Row 3: header
+        table.add_header_row("== Group B ==", "")
+        # Row 4: data
+        table.add_row("item-2", "val-2")
+        # Row 5: data
+        table.add_row("item-3", "val-3")
+        table.cursor_type = "row"
+
+
 class SecretInputApp(App):
     """Host app that mounts a single SecretInput."""
 
@@ -96,6 +124,12 @@ def search_bar_app():
 def vim_table_app():
     """Return a VimDataTableApp instance."""
     return VimDataTableApp()
+
+
+@pytest.fixture
+def vim_table_with_headers_app():
+    """Return a VimDataTableWithHeadersApp instance."""
+    return VimDataTableWithHeadersApp()
 
 
 @pytest.fixture

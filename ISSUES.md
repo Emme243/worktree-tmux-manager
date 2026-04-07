@@ -104,7 +104,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 > New screens and widgets to surface ticket data in the dashboard.
 
-- [ ] **M4-01 · Status grouping in worktree list** — Extend `WorktreeListScreen` to group rows by workflow state. Groups (in order): `Coding in Progress` → `Worktree Created` → `Not Started` (Linear issues without worktree) → `Under Review` (has open PR). Add group header rows (non-selectable, styled differently). Preserve vim navigation across groups.
+- [x] **M4-01 · Status grouping in worktree list** — Extend `WorktreeListScreen` to group rows by workflow state. Groups (in order): `Coding in Progress` → `Worktree Created` → `Not Started` (Linear issues without worktree) → `Under Review` (has open PR). Add group header rows (non-selectable, styled differently). Preserve vim navigation across groups.
 
 - [ ] **M4-02 · Ticket column in worktree table** — Add `Ticket` column to the main table showing `ENG-123` identifier (or `—` if unmapped). Show in cyan/blue color. Selecting this column or pressing `t` opens the ticket detail panel (M4-04).
 

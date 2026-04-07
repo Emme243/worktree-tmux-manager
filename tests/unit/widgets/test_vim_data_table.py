@@ -187,3 +187,111 @@ class TestOnKeyEventHandling:
                 await pilot.press("g")
                 await pilot.pause()
                 mock_scroll.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# Header row support
+# ---------------------------------------------------------------------------
+
+
+class TestHeaderRowSetup:
+    def test_header_row_keys_initially_empty(self):
+        table = VimDataTable()
+        assert len(table._header_row_keys) == 0
+
+    def test_clear_resets_header_row_keys(self):
+        table = VimDataTable()
+        table._header_row_keys.add("fake-key")
+        table.clear()
+        assert len(table._header_row_keys) == 0
+
+
+class TestHeaderRowSkipping:
+    async def test_j_from_header_skips_to_data(self, vim_table_with_headers_app):
+        """From header at row 0, j should skip to first data row at row 1."""
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            table.focus()
+            await pilot.pause()
+            # Initial cursor is at row 0 (header)
+            assert table.cursor_row == 0
+            await pilot.press("j")
+            await pilot.pause()
+            # Should land on row 1 (data), not stay on header
+            assert table.cursor_row == 1
+            await pilot.press("j")
+            await pilot.pause()
+            assert table.cursor_row == 2
+
+    async def test_j_skips_mid_table_header(self, vim_table_with_headers_app):
+        """Moving from row 2 with j should skip header at row 3, land on row 4."""
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            table.focus()
+            await pilot.pause()
+            # Navigate to row 2
+            table.move_cursor(row=2)
+            await pilot.pause()
+            await pilot.press("j")
+            await pilot.pause()
+            assert table.cursor_row == 4
+
+    async def test_k_skips_mid_table_header(self, vim_table_with_headers_app):
+        """Moving from row 4 with k should skip header at row 3, land on row 2."""
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            table.focus()
+            await pilot.pause()
+            table.move_cursor(row=4)
+            await pilot.pause()
+            await pilot.press("k")
+            await pilot.pause()
+            assert table.cursor_row == 2
+
+    async def test_G_skips_header_at_bottom(self, vim_table_with_headers_app):
+        """G should land on last data row, not a header."""
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            table.focus()
+            await pilot.pause()
+            await pilot.press("G")
+            await pilot.pause()
+            assert not table.is_header_row(table.cursor_row)
+            assert table.cursor_row == 5  # last row is data
+
+    async def test_gg_skips_header_at_top(self, vim_table_with_headers_app):
+        """gg should land on first data row, not header at row 0."""
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            table.focus()
+            await pilot.pause()
+            # Move to bottom first
+            await pilot.press("G")
+            await pilot.pause()
+            await pilot.press("g")
+            await pilot.press("g")
+            await pilot.pause()
+            assert table.cursor_row == 1
+
+    async def test_is_header_row_true_for_headers(self, vim_table_with_headers_app):
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            await pilot.pause()
+            assert table.is_header_row(0) is True
+            assert table.is_header_row(3) is True
+
+    async def test_is_header_row_false_for_data(self, vim_table_with_headers_app):
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            await pilot.pause()
+            assert table.is_header_row(1) is False
+            assert table.is_header_row(2) is False
+            assert table.is_header_row(4) is False
+            assert table.is_header_row(5) is False
+
+    async def test_is_header_row_out_of_bounds(self, vim_table_with_headers_app):
+        async with vim_table_with_headers_app.run_test(size=(80, 30)) as pilot:
+            table = pilot.app.query_one(VimDataTable)
+            await pilot.pause()
+            assert table.is_header_row(-1) is False
+            assert table.is_header_row(100) is False

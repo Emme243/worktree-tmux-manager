@@ -139,7 +139,8 @@ class TestWorktreeListScreenRefresh:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            assert table.row_count == len(sample_worktrees)
+            # 1 group header ("Worktree Created") + 3 data rows
+            assert table.row_count == len(sample_worktrees) + 1
 
     async def test_tmux_statuses_cached_for_non_bare(
         self, all_screen_mocks, sample_worktrees
@@ -231,7 +232,8 @@ class TestWorktreeListScreenGetSelected:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)
+            # Row 0 = group header, row 1 = bare, row 2 = feature-login
+            table.move_cursor(row=2)
             wt = app.screen._get_selected_worktree()
             assert wt is not None
             assert wt.branch == "feature/login"
@@ -254,8 +256,8 @@ class TestWorktreeListScreenGetSelected:
         app = _make_app()
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
-            # Force worktrees list to be shorter than the table cursor
-            app.screen.worktrees = []
+            # Force row_data to be shorter than the table cursor
+            app.screen._row_data = []
             wt = app.screen._get_selected_worktree()
             assert wt is None
 
@@ -328,7 +330,7 @@ class TestWorktreeListScreenActions:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)  # non-bare worktree
+            table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
             with patch.object(app, "push_screen") as mock_push:
                 app.screen.action_rename()
                 mock_push.assert_called_once()
@@ -342,7 +344,7 @@ class TestWorktreeListScreenActions:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=0)  # bare worktree
+            table.move_cursor(row=1)  # row 0=header, row 1=bare worktree
             with patch.object(app, "push_screen") as mock_push:
                 app.screen.action_rename()
                 mock_push.assert_not_called()
@@ -420,7 +422,7 @@ class TestWorktreeListScreenButtons:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)
+            table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
             with patch.object(app, "push_screen") as mock_push:
                 await pilot.click("#delete-btn")
                 await pilot.pause()
@@ -431,7 +433,7 @@ class TestWorktreeListScreenButtons:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)
+            table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
             with patch.object(app, "push_screen") as mock_push:
                 await pilot.click("#rename-btn")
                 await pilot.pause()
@@ -449,7 +451,7 @@ class TestWorktreeListScreenEnterWorktree:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=0)  # bare
+            table.move_cursor(row=1)  # row 0=header, row 1=bare
             with patch(
                 "modules.screens.worktree_list.build_session_config"
             ) as mock_cfg:
@@ -466,7 +468,7 @@ class TestWorktreeListScreenEnterWorktree:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)  # non-bare
+            table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
             with patch.object(app, "suspend"):
                 app.screen.action_enter_worktree()
             mock_build_session_config.assert_called_once()
@@ -502,7 +504,7 @@ class TestWorktreeListScreenEnterWorktree:
             async with app.run_test(size=(120, 40)) as pilot:
                 await wait_ready(pilot, app)
                 table = app.screen.query_one("#wt-table", VimDataTable)
-                table.move_cursor(row=1)
+                table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
                 # Should not raise — error is caught and shown as notification
                 with patch.object(app, "suspend"):
                     app.screen.action_enter_worktree()
@@ -581,7 +583,8 @@ class TestWorktreeListScreenSearch:
             app.screen._filter_worktrees("feature")
             app.screen._filter_worktrees("")
             table = app.screen.query_one("#wt-table", VimDataTable)
-            assert table.row_count == len(sample_worktrees)
+            # Grouped table: 1 header + worktrees
+            assert table.row_count == len(sample_worktrees) + 1
 
     async def test_clear_filter_restores_all_rows(
         self, all_screen_mocks, sample_worktrees
@@ -592,7 +595,8 @@ class TestWorktreeListScreenSearch:
             app.screen._filter_worktrees("feature")
             app.screen._clear_filter()
             table = app.screen.query_one("#wt-table", VimDataTable)
-            assert table.row_count == len(sample_worktrees)
+            # Grouped table: 1 header + worktrees
+            assert table.row_count == len(sample_worktrees) + 1
 
     async def test_filter_by_status(self, all_screen_mocks):
         app = _make_app()
@@ -621,7 +625,8 @@ class TestWorktreeListScreenSearch:
             event = SearchBar.Dismissed()
             app.screen.on_search_bar_dismissed(event)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            assert table.row_count == len(sample_worktrees)
+            # Grouped table: 1 header + worktrees
+            assert table.row_count == len(sample_worktrees) + 1
 
 
 # ---------------------------------------------------------------------------
@@ -646,7 +651,7 @@ class TestWorktreeListScreenKeybindings:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)
+            table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
             table.focus()
             with patch.object(app, "push_screen") as mock_push:
                 await pilot.press("d")
@@ -658,7 +663,7 @@ class TestWorktreeListScreenKeybindings:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)
+            table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
             table.focus()
             with patch.object(app, "push_screen") as mock_push:
                 await pilot.press("n")
@@ -694,11 +699,11 @@ class TestWorktreeListScreenRowSelection:
         async with app.run_test(size=(120, 40)) as pilot:
             await wait_ready(pilot, app)
             table = app.screen.query_one("#wt-table", VimDataTable)
-            table.move_cursor(row=1)
+            table.move_cursor(row=2)  # row 0=header, 1=bare, 2=feature-login
             event = DataTable.RowSelected(
                 data_table=table,
-                cursor_row=1,
-                row_key=table.get_row_at(1),
+                cursor_row=2,
+                row_key=table.get_row_at(2),
             )
             with patch.object(app, "suspend"):
                 app.screen.on_data_table_row_selected(event)
