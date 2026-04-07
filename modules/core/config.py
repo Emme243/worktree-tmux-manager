@@ -34,6 +34,7 @@ class ProjectConfig:
 
     path: Path
     name: str = ""
+    github_repo: str | None = None
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -87,13 +88,14 @@ def load_config(path: Path | None = None) -> AppConfig:
             ProjectConfig(
                 path=Path(p["path"]).expanduser(),
                 name=p.get("name", ""),
+                github_repo=p.get("github_repo"),
             )
             for p in data["projects"]
         ]
         repo_path = projects[0].path
     elif "repo_path" in data:
         repo_path = Path(data["repo_path"]).expanduser()
-        projects = [ProjectConfig(path=repo_path)]
+        projects = [ProjectConfig(path=repo_path, github_repo=data.get("github_repo"))]
     else:
         raise ConfigError(
             f"Config file is missing required key 'repo_path': {path}",
@@ -123,7 +125,20 @@ def save_config(config: AppConfig, path: Path | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     projects = config.projects or [ProjectConfig(path=config.repo_path)]
-    data: dict = {"projects": [{"path": str(p.path), "name": p.name} for p in projects]}
+    data: dict = {
+        "projects": [
+            {
+                k: v
+                for k, v in {
+                    "path": str(p.path),
+                    "name": p.name,
+                    "github_repo": p.github_repo,
+                }.items()
+                if v is not None
+            }
+            for p in projects
+        ]
+    }
     if config.linear_api_key is not None:
         data["linear_api_key"] = config.linear_api_key
     if config.linear_team_id is not None:

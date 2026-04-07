@@ -444,3 +444,48 @@ class TestSaveConfigProjectFormat:
         save_config(AppConfig(repo_path=Path("/repos/fallback")), path)
         cfg = load_config(path)
         assert cfg.projects[0].path == Path("/repos/fallback")
+
+
+# ---------------------------------------------------------------------------
+# ProjectConfig.github_repo
+# ---------------------------------------------------------------------------
+
+
+class TestProjectConfigGithubRepo:
+    def test_github_repo_defaults_to_none(self):
+        cfg = ProjectConfig(path=Path("/r"))
+        assert cfg.github_repo is None
+
+    def test_github_repo_can_be_set(self):
+        cfg = ProjectConfig(path=Path("/r"), github_repo="owner/repo")
+        assert cfg.github_repo == "owner/repo"
+
+
+class TestProjectConfigGithubRepoRoundTrip:
+    def test_github_repo_round_trips_in_projects(self, tmp_path):
+        path = tmp_path / "config.toml"
+        project = ProjectConfig(path=Path("/repos/alpha"), github_repo="org/proj")
+        save_config(AppConfig(repo_path=Path("/repos/alpha"), projects=[project]), path)
+        cfg = load_config(path)
+        assert cfg.projects[0].github_repo == "org/proj"
+
+    def test_github_repo_none_when_not_in_file(self, tmp_path):
+        path = tmp_path / "config.toml"
+        project = ProjectConfig(path=Path("/repos/alpha"))
+        save_config(AppConfig(repo_path=Path("/repos/alpha"), projects=[project]), path)
+        cfg = load_config(path)
+        assert cfg.projects[0].github_repo is None
+
+    def test_top_level_github_repo_migrated_to_first_project(self, tmp_path):
+        path = tmp_path / "config.toml"
+        path.write_text(
+            'repo_path = "/some/repo"\ngithub_repo = "org/proj"\n', encoding="utf-8"
+        )
+        cfg = load_config(path)
+        assert cfg.projects[0].github_repo == "org/proj"
+
+    def test_top_level_github_repo_absent_gives_none_on_project(self, tmp_path):
+        path = tmp_path / "config.toml"
+        path.write_text('repo_path = "/some/repo"\n', encoding="utf-8")
+        cfg = load_config(path)
+        assert cfg.projects[0].github_repo is None
