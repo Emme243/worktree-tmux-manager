@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from modules.screens import ProjectSetupScreen, WorktreeListScreen
+from modules.screens import ProjectSetupScreen, SettingsScreen, WorktreeListScreen
 
 
 class TestScreensExports:
@@ -12,7 +12,14 @@ class TestScreensExports:
     def test_exports_project_setup_screen(self):
         assert ProjectSetupScreen is not None
 
+    def test_exports_settings_screen(self):
+        assert SettingsScreen is not None
+
     def test_all_contains_expected_names(self):
         import modules.screens as mod
 
-        assert set(mod.__all__) == {"ProjectSetupScreen", "WorktreeListScreen"}
+        assert set(mod.__all__) == {
+            "ProjectSetupScreen",
+            "SettingsScreen",
+            "WorktreeListScreen",
+        }

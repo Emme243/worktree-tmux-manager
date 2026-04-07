@@ -43,6 +43,7 @@ class WorktreeListScreen(Screen):
         Binding("r", "refresh", "Refresh"),
         Binding("slash", "search", "Search", key_display="/"),
         Binding("p", "switch_project", "Switch project"),
+        Binding("S", "settings", "Settings"),
     ]
 
     def __init__(self, repo_dir: str, config: AppConfig) -> None:
@@ -203,6 +204,20 @@ class WorktreeListScreen(Screen):
             ProjectPickerScreen(self._config),
             callback=self._on_project_switched,
         )
+
+    def action_settings(self) -> None:
+        from modules.screens.settings import SettingsScreen
+
+        self.app.push_screen(
+            SettingsScreen(self._config),
+            callback=self._on_settings_dismissed,
+        )
+
+    def _on_settings_dismissed(self, result: bool) -> None:
+        if result:
+            from modules.core.config import load_config
+
+            self._config = load_config()
 
     def _on_project_switched(self, result: ProjectConfig | None) -> None:
         if result is None:
