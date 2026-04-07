@@ -207,6 +207,35 @@ class LinearClient:
     }
     """
 
+    _FETCH_ISSUE_BY_BRANCH_QUERY = """
+    query FetchIssueByBranch($branch: String!) {
+      issueVcsBranchSearch(branchName: $branch) {
+        id
+        identifier
+        title
+        state { name type }
+        branchName
+        url
+        assignee { name }
+        updatedAt
+        comments { totalCount }
+      }
+    }
+    """
+
+    async def fetch_issue_by_branch(self, branch: str) -> Ticket | None:
+        """Fetch a Linear issue matching the given VCS branch name.
+
+        Returns ``None`` if no issue is associated with the branch.
+        """
+        data = await self.execute(
+            self._FETCH_ISSUE_BY_BRANCH_QUERY, variables={"branch": branch}
+        )
+        node = data.get("issueVcsBranchSearch")
+        if node is None:
+            return None
+        return _parse_ticket(node)
+
     async def fetch_issue_comments(self, issue_id: str) -> list[Comment]:
         """Fetch comments for a specific Linear issue.
 

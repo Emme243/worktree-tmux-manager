@@ -448,6 +448,67 @@ class TestFetchMyIssues:
 
 
 # ---------------------------------------------------------------------------
+# fetch_issue_by_branch
+# ---------------------------------------------------------------------------
+
+
+class TestFetchIssueByBranch:
+    @pytest.fixture()
+    async def connected(self):
+        """Yield (client, mock_session) with a connected LinearClient."""
+        client = LinearClient(api_key=_DUMMY_KEY)
+        mock_session = AsyncMock()
+        with (
+            patch.object(
+                client._client, "connect_async", new_callable=AsyncMock
+            ) as mock_connect,
+            patch.object(client._client, "close_async", new_callable=AsyncMock),
+        ):
+            mock_connect.return_value = mock_session
+            async with client:
+                yield client, mock_session
+
+    async def test_returns_ticket_on_match(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = {"issueVcsBranchSearch": _SAMPLE_NODE}
+
+        ticket = await client.fetch_issue_by_branch("eng-42-fix-the-bug")
+        assert ticket is not None
+        assert ticket.identifier == "ENG-42"
+
+    async def test_returns_none_when_no_match(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = {"issueVcsBranchSearch": None}
+
+        ticket = await client.fetch_issue_by_branch("nonexistent-branch")
+        assert ticket is None
+
+    async def test_passes_branch_variable(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = {"issueVcsBranchSearch": None}
+
+        await client.fetch_issue_by_branch("my-feature-branch")
+        _, kwargs = mock_session.execute.call_args
+        assert kwargs["variable_values"] == {"branch": "my-feature-branch"}
+
+    async def test_propagates_auth_error(self, connected):
+        client, mock_session = connected
+        exc = TransportServerError("401 Unauthorized")
+        exc.code = 401
+        mock_session.execute.side_effect = exc
+
+        with pytest.raises(LinearAuthError):
+            await client.fetch_issue_by_branch("some-branch")
+
+    async def test_propagates_network_error(self, connected):
+        client, mock_session = connected
+        mock_session.execute.side_effect = ConnectionError("timeout")
+
+        with pytest.raises(LinearNetworkError):
+            await client.fetch_issue_by_branch("some-branch")
+
+
+# ---------------------------------------------------------------------------
 # _parse_comment
 # ---------------------------------------------------------------------------
 

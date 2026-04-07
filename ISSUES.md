@@ -74,9 +74,9 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M2-02 · Fetch assigned issues** — Implement `LinearClient.fetch_my_issues(team_id: str) -> list[Ticket]`. GraphQL query should fetch: `id`, `identifier`, `title`, `state { name, type }`, `branchName`, `url`, `assignee { name }`, `updatedAt`, `comments { totalCount }`. Filter to issues assigned to the authenticated user and in active states (not `cancelled`/`completed`).
 
-- [ ] **M2-03 · Fetch issue comments** — Implement `LinearClient.fetch_issue_comments(issue_id: str) -> list[Comment]`. Use the `issue(id:) { comments { nodes { id, body, createdAt, user { name } } } }` query. Mark comments as read/unread by comparing `updatedAt` against a local timestamp store (see M5-01).
+- [x] **M2-03 · Fetch issue comments** — Implement `LinearClient.fetch_issue_comments(issue_id: str) -> list[Comment]`. Use the `issue(id:) { comments { nodes { id, body, createdAt, user { name } } } }` query. Mark comments as read/unread by comparing `updatedAt` against a local timestamp store (see M5-01).
 
-- [ ] **M2-04 · Fetch a single issue by branch name** — Implement `LinearClient.fetch_issue_by_branch(branch: str) -> Ticket | None`. Use `issueSearch` or filter by `branchName` field. Useful when creating a worktree to auto-link to Linear ticket.
+- [x] **M2-04 · Fetch a single issue by branch name** — Implement `LinearClient.fetch_issue_by_branch(branch: str) -> Ticket | None`. Use `issueSearch` or filter by `branchName` field. Useful when creating a worktree to auto-link to Linear ticket.
 
 - [ ] **M2-05 · Linear data cache** — Store fetched tickets in a simple in-memory `LinearCache` (a dataclass holding `list[Ticket]` + `last_fetched: datetime`). Do not hit the API if last fetch was < N seconds ago (configurable, default 30s). Cache invalidated on webhook events (M5-02).
 
