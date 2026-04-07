@@ -19,7 +19,7 @@ from github.PullRequest import PullRequest as GHPullRequest
 from github.Repository import Repository
 
 from modules.core.config import AppConfig
-from modules.github.models import PRState, PullRequest
+from modules.github.models import Comment, PRState, PullRequest
 
 __all__ = [
     "GitHubAuthError",
@@ -28,6 +28,7 @@ __all__ = [
     "GitHubNetworkError",
     "GitHubNotFoundError",
     "GitHubRateLimitError",
+    "_parse_comment",
     "_parse_pull_request",
 ]
 
@@ -173,8 +174,44 @@ class GitHubClient:
         pulls = await self._run_sync(lambda: list(repo.get_pulls(state="open")))
         return [_parse_pull_request(pr) for pr in pulls]
 
+    async def fetch_pr_comments(self, pr_number: int) -> list[Comment]:
+        """Fetch all comments for a pull request.
+
+        Retrieves both general issue comments and inline review comments,
+        merges them, and returns sorted by ``created_at`` (oldest first).
+        All comments are initially marked as unread (``is_read=False``).
+        """
+        repo = self._require_repo()
+
+        def _fetch() -> list[Comment]:
+            pr = repo.get_pull(pr_number)
+            issue_comments = [_parse_comment(c) for c in pr.get_issue_comments()]
+            review_comments = [_parse_comment(c) for c in pr.get_review_comments()]
+            merged = issue_comments + review_comments
+            merged.sort(key=lambda c: c.created_at)
+            return merged
+
+        return await self._run_sync(_fetch)
+
 
 # --- Response parsing ---
+
+
+def _parse_comment(comment: object) -> Comment:
+    """Convert a PyGithub comment object to a domain Comment.
+
+    Works with both ``IssueComment`` and ``PullRequestComment`` objects
+    since they share the same attribute interface.
+    """
+    user = getattr(comment, "user", None)
+    author = user.login if user is not None else "Unknown"
+    return Comment(
+        id=comment.id,  # type: ignore[union-attr]
+        body=comment.body,  # type: ignore[union-attr]
+        author=author,
+        created_at=comment.created_at,  # type: ignore[union-attr]
+        is_read=False,
+    )
 
 
 def _parse_pull_request(pr: GHPullRequest) -> PullRequest:
