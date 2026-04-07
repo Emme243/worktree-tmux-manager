@@ -78,7 +78,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M2-04 · Fetch a single issue by branch name** — Implement `LinearClient.fetch_issue_by_branch(branch: str) -> Ticket | None`. Use `issueSearch` or filter by `branchName` field. Useful when creating a worktree to auto-link to Linear ticket.
 
-- [ ] **M2-05 · Linear data cache** — Store fetched tickets in a simple in-memory `LinearCache` (a dataclass holding `list[Ticket]` + `last_fetched: datetime`). Do not hit the API if last fetch was < N seconds ago (configurable, default 30s). Cache invalidated on webhook events (M5-02).
+- [x] **M2-05 · Linear data cache** — Store fetched tickets in a simple in-memory `LinearCache` (a dataclass holding `list[Ticket]` + `last_fetched: datetime`). Do not hit the API if last fetch was < N seconds ago (configurable, default 30s). Cache invalidated on webhook events (M5-02).
 
 ---
 
@@ -88,7 +88,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 > Docs: https://docs.github.com/en/rest/pulls/pulls | https://docs.github.com/en/rest/issues/comments
 > Python SDK: https://github.com/PyGithub/PyGithub
 
-- [ ] **M3-01 · GitHub REST client** — Create `modules/github/client.py` using `PyGithub`. Authenticate with personal access token. Implement `GitHubClient` class wrapping a `github.Github` instance. Add `PyGithub` to `pyproject.toml`. Expose `async`-friendly wrappers using `asyncio.to_thread()` (PyGithub is synchronous).
+- [x] **M3-01 · GitHub REST client** — Create `modules/github/client.py` using `PyGithub`. Authenticate with personal access token. Implement `GitHubClient` class wrapping a `github.Github` instance. Add `PyGithub` to `pyproject.toml`. Expose `async`-friendly wrappers using `asyncio.to_thread()` (PyGithub is synchronous).
 
 - [ ] **M3-02 · Fetch open PRs** — Implement `GitHubClient.fetch_open_prs() -> list[PullRequest]`. Use `repo.get_pulls(state="open")`. Map PyGithub `PullRequest` objects to our domain `PullRequest` dataclass.
 
