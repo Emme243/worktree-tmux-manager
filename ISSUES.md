@@ -164,6 +164,8 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 - [ ] **B-04 · Cycle through comments with `n`/`N`** — Vim-style comment navigation in detail modals.
 - [ ] **B-05 · Configurable tmux layout** — Allow users to define window presets in config (editor command, additional windows, working directory overrides).
 
+- [ ] **B-06 · Auto-detect GitHub repo from git remote** — The wizard currently asks the user to type `owner/repo` explicitly. Instead, after a valid repo path is confirmed, run `git remote get-url origin` and parse the slug from both HTTPS (`https://github.com/owner/repo.git`) and SSH (`git@github.com:owner/repo.git`) formats. Pre-fill the input with the detected value, or skip showing the field entirely if detection is unambiguous. Only fall back to manual entry if no `origin` remote exists or the remote is not a GitHub URL.
+
 ---
 
 ## Notes
