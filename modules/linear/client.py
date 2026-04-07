@@ -72,7 +72,7 @@ class LinearClient:
         self._api_key = api_key
         self._transport = HTTPXAsyncTransport(
             url=LINEAR_API_URL,
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"Authorization": api_key},
         )
         self._client = Client(
             transport=self._transport,
@@ -241,8 +241,6 @@ def _parse_ticket(node: dict[str, Any]) -> Ticket:
         branch_name=node.get("branchName") or "",
         url=node["url"],
         assignee=assignee_data["name"] if assignee_data else None,
-        updated_at=dt.datetime.fromisoformat(node["updatedAt"]).replace(
-            tzinfo=dt.UTC
-        ),
+        updated_at=dt.datetime.fromisoformat(node["updatedAt"]).replace(tzinfo=dt.UTC),
         unread_comment_count=comments_data.get("totalCount", 0),
     )

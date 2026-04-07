@@ -15,6 +15,11 @@ __all__ = ["LinearStepScreen"]
 
 
 class LinearStepScreen(WizardStepScreen):
+    DEFAULT_CSS = """
+    LinearStepScreen #linear-team-id {
+        margin-top: 1;
+    }
+    """
     """Collect Linear API key and team ID with inline validation.
 
     Next is disabled until validation passes. The step is skippable —
@@ -34,7 +39,7 @@ class LinearStepScreen(WizardStepScreen):
         yield SecretInput(
             label="Linear Team ID:",
             placeholder="e.g. ENG",
-            hint="Settings → Members → copy the team ID",
+            hint="Settings → Your Teams → General → Identifier",
             id="linear-team-id",
         )
         yield Button("Validate", id="linear-validate", variant="default")

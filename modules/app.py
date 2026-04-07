@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
 
 from textual import work
 from textual.app import App
@@ -13,7 +12,15 @@ from modules.core.config import ConfigError, ProjectConfig, load_config
 from modules.core.state import AppState, load_state, save_state
 from modules.screens.help_overlay import HelpOverlay
 from modules.screens.project_picker import ProjectPickerScreen
-from modules.screens.project_setup import ProjectSetupScreen
+from modules.screens.wizard import (
+    GithubStepScreen,
+    LinearStepScreen,
+    ProjectStepScreen,
+    SummaryStepScreen,
+    WelcomeStepScreen,
+    WizardController,
+    WizardStep,
+)
 from modules.screens.worktree_list import WorktreeListScreen
 
 
@@ -37,10 +44,7 @@ class GitWorktreeApp(App):
             self._config = config
         except ConfigError as exc:
             if exc.reason in ("missing_file", "missing_repo_path"):
-                self.push_screen(
-                    ProjectSetupScreen(mode="first_run"),
-                    callback=self._on_first_run_setup,
-                )
+                self._run_wizard()
             else:
                 self.notify(str(exc), severity="error", timeout=10)
                 self.exit()
@@ -98,13 +102,45 @@ class GitWorktreeApp(App):
         save_state(AppState(last_project_path=result.path))
         self.push_screen(WorktreeListScreen(str(result.path), self._config))
 
-    def _on_first_run_setup(self, result: Path | None) -> None:
-        if result is None:
+    def _run_wizard(self) -> None:
+        """Create a fresh WizardController and push the first step screen."""
+        self._wizard_controller = WizardController()
+        self._push_wizard_step()
+
+    def _push_wizard_step(self) -> None:
+        """Map the controller's current step to a screen class and push it."""
+        step_screens = {
+            WizardStep.WELCOME: WelcomeStepScreen,
+            WizardStep.LINEAR: LinearStepScreen,
+            WizardStep.GITHUB: GithubStepScreen,
+            WizardStep.PROJECT: ProjectStepScreen,
+            WizardStep.SUMMARY: SummaryStepScreen,
+        }
+        screen_cls = step_screens[self._wizard_controller.current_step]
+        self.push_screen(
+            screen_cls(self._wizard_controller),
+            callback=self._on_wizard_step_dismissed,
+        )
+
+    def _on_wizard_step_dismissed(self, result: str) -> None:
+        """Route wizard step results: advance, retreat, finish, or cancel."""
+        if result == "cancel":
             self.exit()
             return
-        save_state(AppState(last_project_path=result))
+        if result in ("next", "skip"):
+            if not self._wizard_controller.next():
+                self._finish_wizard()
+                return
+        elif result == "back":
+            self._wizard_controller.back()
+        self._push_wizard_step()
+
+    def _finish_wizard(self) -> None:
+        """Wizard complete: reload config, save state, push WorktreeListScreen."""
         config = load_config()
-        self.push_screen(WorktreeListScreen(str(result), config))
+        self._config = config
+        save_state(AppState(last_project_path=config.repo_path))
+        self.push_screen(WorktreeListScreen(str(config.repo_path), config))
 
     def action_toggle_dark(self) -> None:
         self.theme = (

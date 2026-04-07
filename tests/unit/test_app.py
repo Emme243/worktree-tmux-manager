@@ -12,7 +12,7 @@ from modules.core.config import AppConfig, ConfigError, ProjectConfig
 from modules.core.state import AppState
 from modules.screens.help_overlay import HelpOverlay
 from modules.screens.project_picker import ProjectPickerScreen
-from modules.screens.project_setup import ProjectSetupScreen
+from modules.screens.wizard import WelcomeStepScreen
 from modules.screens.worktree_list import WorktreeListScreen
 
 
@@ -47,13 +47,13 @@ class TestGitWorktreeAppSetup:
 
 
 # ---------------------------------------------------------------------------
-# _validate_and_start — config error
+# _validate_and_start — first-run: launches wizard
 # ---------------------------------------------------------------------------
 
 
-class TestValidateAndStartConfigError:
-    async def test_pushes_setup_screen_when_config_missing(self):
-        """First-run: missing file → ProjectSetupScreen pushed."""
+class TestValidateAndStartFirstRun:
+    async def test_launches_wizard_when_config_missing(self):
+        """First-run: missing file → WelcomeStepScreen pushed (wizard launched)."""
         app = GitWorktreeApp()
         with (
             patch(
@@ -70,10 +70,10 @@ class TestValidateAndStartConfigError:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
                 await pilot.pause()
-                assert any(isinstance(s, ProjectSetupScreen) for s in app.screen_stack)
+                assert any(isinstance(s, WelcomeStepScreen) for s in app.screen_stack)
 
-    async def test_pushes_setup_screen_when_repo_path_missing(self):
-        """First-run: missing repo_path key → ProjectSetupScreen pushed."""
+    async def test_launches_wizard_when_repo_path_missing(self):
+        """First-run: missing repo_path key → WelcomeStepScreen pushed (wizard launched)."""
         app = GitWorktreeApp()
         with (
             patch(
@@ -91,7 +91,7 @@ class TestValidateAndStartConfigError:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
                 await pilot.pause()
-                assert any(isinstance(s, ProjectSetupScreen) for s in app.screen_stack)
+                assert any(isinstance(s, WelcomeStepScreen) for s in app.screen_stack)
 
     async def test_exits_when_config_invalid_toml(self):
         """Invalid TOML → still notifies and exits (not first-run)."""
@@ -114,24 +114,44 @@ class TestValidateAndStartConfigError:
                     isinstance(s, WorktreeListScreen) for s in app.screen_stack
                 )
                 assert not any(
-                    isinstance(s, ProjectSetupScreen) for s in app.screen_stack
+                    isinstance(s, WelcomeStepScreen) for s in app.screen_stack
                 )
 
 
 # ---------------------------------------------------------------------------
-# _on_first_run_setup callback
+# Wizard flow (M1C-06)
 # ---------------------------------------------------------------------------
 
 
-class TestOnFirstRunSetup:
-    async def test_pushes_worktree_list_screen_with_valid_path(self):
-        """Callback with a valid Path pushes WorktreeListScreen."""
+class TestWizardFlow:
+    async def test_wizard_cancel_exits_app(self):
+        """Wizard cancel at any step exits the app."""
         app = GitWorktreeApp()
-        repo = Path("/fake/repo")
         with (
             patch(
                 "modules.app.load_config",
-                side_effect=[ConfigError("", reason="missing_file"), _make_config()],
+                side_effect=ConfigError("", reason="missing_file"),
+            ),
+            patch("modules.app.load_state", return_value=AppState()),
+            patch("modules.app.save_state"),
+        ):
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                app._on_wizard_step_dismissed("cancel")
+                await pilot.pause()
+                assert app.return_code is not None
+
+    async def test_wizard_finish_pushes_worktree_list(self):
+        """_finish_wizard reloads config and pushes WorktreeListScreen."""
+        app = GitWorktreeApp()
+        config = _make_config("/new/repo")
+        with (
+            patch(
+                "modules.app.load_config",
+                side_effect=[ConfigError("", reason="missing_file"), config],
             ),
             patch("modules.app.load_state", return_value=AppState()),
             patch("modules.app.save_state"),
@@ -154,31 +174,85 @@ class TestOnFirstRunSetup:
                 await pilot.pause()
                 await app.workers.wait_for_complete()
                 await pilot.pause()
-                app._on_first_run_setup(repo)
+                app._finish_wizard()
                 await pilot.pause()
                 await app.workers.wait_for_complete()
                 await pilot.pause()
                 assert any(isinstance(s, WorktreeListScreen) for s in app.screen_stack)
 
-    async def test_exits_when_callback_receives_none(self):
-        """Callback with None exits the app (defensive path)."""
+    async def test_finish_wizard_saves_state(self):
+        """_finish_wizard calls save_state with the repo path from loaded config."""
         app = GitWorktreeApp()
+        config = _make_config("/new/repo")
         with (
             patch(
                 "modules.app.load_config",
-                side_effect=ConfigError("", reason="missing_file"),
+                side_effect=[ConfigError("", reason="missing_file"), config],
             ),
             patch("modules.app.load_state", return_value=AppState()),
-            patch("modules.app.save_state"),
+            patch("modules.app.save_state") as mock_save,
+            patch(
+                "modules.screens.worktree_list.list_worktrees",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "modules.screens.worktree_list.populate_worktree_statuses",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "modules.screens.worktree_list.is_worktree_session_active",
+                return_value=False,
+            ),
         ):
             async with app.run_test(size=(120, 40)) as pilot:
                 await pilot.pause()
                 await pilot.pause()
                 await app.workers.wait_for_complete()
                 await pilot.pause()
-                app._on_first_run_setup(None)
+                mock_save.reset_mock()
+                app._finish_wizard()
                 await pilot.pause()
-                assert app.return_code is not None
+                mock_save.assert_called_once_with(
+                    AppState(last_project_path=Path("/new/repo"))
+                )
+
+    async def test_existing_config_skips_wizard(self):
+        """Valid existing config does not push WelcomeStepScreen."""
+        app = GitWorktreeApp()
+        with (
+            patch("modules.app.load_config", return_value=_make_config()),
+            patch("modules.app.load_state", return_value=AppState()),
+            patch("modules.app.save_state"),
+            patch("modules.app.os.path.isdir", return_value=True),
+            patch(
+                "modules.git.is_git_repo",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "modules.screens.worktree_list.list_worktrees",
+                new_callable=AsyncMock,
+                return_value=[],
+            ),
+            patch(
+                "modules.screens.worktree_list.populate_worktree_statuses",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "modules.screens.worktree_list.is_worktree_session_active",
+                return_value=False,
+            ),
+        ):
+            async with app.run_test(size=(120, 40)) as pilot:
+                await pilot.pause()
+                await pilot.pause()
+                await app.workers.wait_for_complete()
+                await pilot.pause()
+                assert not any(
+                    isinstance(s, WelcomeStepScreen) for s in app.screen_stack
+                )
+                assert any(isinstance(s, WorktreeListScreen) for s in app.screen_stack)
 
 
 # ---------------------------------------------------------------------------
@@ -466,70 +540,6 @@ class TestOnProjectPickedSavesState:
                 await app.workers.wait_for_complete()
                 mock_save.reset_mock()
                 app._on_project_picked(None)
-                mock_save.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
-# _on_first_run_setup — saves state (M1B-07)
-# ---------------------------------------------------------------------------
-
-
-class TestOnFirstRunSetupSavesState:
-    async def test_saves_state_when_path_returned(self):
-        app = GitWorktreeApp()
-        with (
-            patch(
-                "modules.app.load_config",
-                side_effect=[
-                    ConfigError("", reason="missing_file"),
-                    _make_config("/new/repo"),
-                ],
-            ),
-            patch("modules.app.load_state", return_value=AppState()),
-            patch("modules.app.save_state") as mock_save,
-            patch(
-                "modules.screens.worktree_list.list_worktrees",
-                new_callable=AsyncMock,
-                return_value=[],
-            ),
-            patch(
-                "modules.screens.worktree_list.populate_worktree_statuses",
-                new_callable=AsyncMock,
-            ),
-            patch(
-                "modules.screens.worktree_list.is_worktree_session_active",
-                return_value=False,
-            ),
-        ):
-            async with app.run_test(size=(120, 40)) as pilot:
-                await pilot.pause()
-                await pilot.pause()
-                await app.workers.wait_for_complete()
-                await pilot.pause()
-                mock_save.reset_mock()
-                app._on_first_run_setup(Path("/new/repo"))
-                await pilot.pause()
-                mock_save.assert_called_once_with(
-                    AppState(last_project_path=Path("/new/repo"))
-                )
-
-    async def test_does_not_save_state_when_none(self):
-        app = GitWorktreeApp()
-        with (
-            patch(
-                "modules.app.load_config",
-                side_effect=ConfigError("", reason="missing_file"),
-            ),
-            patch("modules.app.load_state", return_value=AppState()),
-            patch("modules.app.save_state") as mock_save,
-        ):
-            async with app.run_test(size=(120, 40)) as pilot:
-                await pilot.pause()
-                await pilot.pause()
-                await app.workers.wait_for_complete()
-                await pilot.pause()
-                mock_save.reset_mock()
-                app._on_first_run_setup(None)
                 mock_save.assert_not_called()
 
 
