@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from pathlib import Path
@@ -161,8 +162,8 @@ class WorktreeListScreen(Screen):
                 log.debug("GitHub client init failed", exc_info=True)
                 self._github_client = None
 
-    async def _fetch_tickets_and_prs(self) -> None:
-        """Fetch tickets and PRs from configured integrations."""
+    async def _fetch_linear_tickets(self) -> None:
+        """Fetch Linear tickets (safe to call concurrently)."""
         if self._linear_client and self._config.linear_team_id:
             try:
                 self._tickets = await self._linear_client.fetch_my_issues(
@@ -174,6 +175,8 @@ class WorktreeListScreen(Screen):
         else:
             self._tickets = []
 
+    async def _fetch_github_prs(self) -> None:
+        """Fetch GitHub PRs (safe to call concurrently)."""
         if self._github_client:
             try:
                 self._prs = await self._github_client.fetch_open_prs()
@@ -183,8 +186,16 @@ class WorktreeListScreen(Screen):
         else:
             self._prs = []
 
+    async def _fetch_tickets_and_prs(self) -> None:
+        """Fetch tickets and PRs concurrently from configured integrations."""
+        await asyncio.gather(
+            self._fetch_linear_tickets(),
+            self._fetch_github_prs(),
+        )
+
     @work(exclusive=True)
     async def refresh_worktrees(self) -> None:
+        # Phase 1: Git data — render table immediately
         try:
             self.worktrees = await list_worktrees(self.repo_dir)
         except GitError as e:
@@ -196,12 +207,18 @@ class WorktreeListScreen(Screen):
             for wt in self.worktrees
             if not wt.is_bare
         }
+        self._render_grouped_table()
 
+        # Phase 2: API data — fetch concurrently, then re-render with grouping
         await self._init_clients()
+        if not self._linear_client and not self._github_client:
+            return
+        title = self.query_one("#wt-title", Static)
+        title.update(f"Worktrees for: {self.repo_dir}  (loading...)")
         await self._fetch_tickets_and_prs()
         self._registry.refresh(self.worktrees, self._tickets, self._prs)
-
         self._render_grouped_table()
+        title.update(f"Worktrees for: {self.repo_dir}")
 
     def _render_grouped_table(self) -> None:
         """Render worktrees grouped by workflow state with header rows."""
