@@ -96,7 +96,7 @@ Work through issues milestone by milestone. Mark items `[x]` when done. Add new 
 
 - [x] **M3-04 · Check PR merge status** — Implement `GitHubClient.get_pr_merge_status(pr_number: int) -> str`. Returns one of: `"open"`, `"merged"`, `"closed"`, `"draft"`. Handle the null-mergeable case (retry once after 1s).
 
-- [ ] **M3-05 · GitHub data cache** — Mirror of M2-05 for GitHub data. `GitHubCache` with TTL and webhook-based invalidation.
+- [x] **M3-05 · GitHub data cache** — Mirror of M2-05 for GitHub data. `GitHubCache` with TTL and webhook-based invalidation.
 
 ---
 
