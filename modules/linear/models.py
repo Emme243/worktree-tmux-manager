@@ -43,3 +43,15 @@ class Ticket:
     updated_at: datetime
     assignee: str | None = None
     unread_comment_count: int = field(default=0)
+
+
+@dataclass
+class Comment:
+    """A Linear issue comment."""
+
+    id: str
+    body: str
+    user_name: str
+    created_at: datetime
+    updated_at: datetime
+    is_read: bool = field(default=False)

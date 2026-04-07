@@ -19,9 +19,10 @@ from modules.linear.client import (
     LinearQueryError,
     _extract_status_code,
     _map_state_type,
+    _parse_comment,
     _parse_ticket,
 )
-from modules.linear.models import Ticket, TicketStatus
+from modules.linear.models import Comment, Ticket, TicketStatus
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -444,3 +445,147 @@ class TestFetchMyIssues:
 
         with pytest.raises(LinearNetworkError):
             await client.fetch_my_issues("team_123")
+
+
+# ---------------------------------------------------------------------------
+# _parse_comment
+# ---------------------------------------------------------------------------
+
+_SAMPLE_COMMENT_NODE = {
+    "id": "comment_1",
+    "body": "Looks good!",
+    "createdAt": "2025-06-01T12:00:00.000Z",
+    "updatedAt": "2025-06-01T13:00:00.000Z",
+    "user": {"name": "Bob"},
+}
+
+
+class TestParseComment:
+    def test_parses_full_node(self):
+        comment = _parse_comment(_SAMPLE_COMMENT_NODE)
+        assert comment.id == "comment_1"
+        assert comment.body == "Looks good!"
+        assert comment.user_name == "Bob"
+        assert comment.is_read is False
+
+    def test_missing_user_defaults_to_unknown(self):
+        node = {**_SAMPLE_COMMENT_NODE, "user": None}
+        comment = _parse_comment(node)
+        assert comment.user_name == "Unknown"
+
+    def test_missing_user_name_defaults_to_unknown(self):
+        node = {**_SAMPLE_COMMENT_NODE, "user": {}}
+        comment = _parse_comment(node)
+        assert comment.user_name == "Unknown"
+
+    def test_missing_body_defaults_to_empty(self):
+        node = {**_SAMPLE_COMMENT_NODE}
+        del node["body"]
+        comment = _parse_comment(node)
+        assert comment.body == ""
+
+    def test_missing_updated_at_falls_back_to_created_at(self):
+        node = {**_SAMPLE_COMMENT_NODE}
+        del node["updatedAt"]
+        comment = _parse_comment(node)
+        assert comment.updated_at == comment.created_at
+
+    def test_created_at_is_utc_datetime(self):
+        from datetime import datetime
+
+        comment = _parse_comment(_SAMPLE_COMMENT_NODE)
+        assert isinstance(comment.created_at, datetime)
+        assert comment.created_at.tzinfo == UTC
+
+    def test_updated_at_is_utc_datetime(self):
+        from datetime import datetime
+
+        comment = _parse_comment(_SAMPLE_COMMENT_NODE)
+        assert isinstance(comment.updated_at, datetime)
+        assert comment.updated_at.tzinfo == UTC
+
+    def test_returns_comment_instance(self):
+        comment = _parse_comment(_SAMPLE_COMMENT_NODE)
+        assert isinstance(comment, Comment)
+
+
+# ---------------------------------------------------------------------------
+# fetch_issue_comments
+# ---------------------------------------------------------------------------
+
+
+class TestFetchIssueComments:
+    @pytest.fixture()
+    async def connected(self):
+        """Yield (client, mock_session) with a connected LinearClient."""
+        client = LinearClient(api_key=_DUMMY_KEY)
+        mock_session = AsyncMock()
+        with (
+            patch.object(
+                client._client, "connect_async", new_callable=AsyncMock
+            ) as mock_connect,
+            patch.object(client._client, "close_async", new_callable=AsyncMock),
+        ):
+            mock_connect.return_value = mock_session
+            async with client:
+                yield client, mock_session
+
+    def _make_response(self, nodes: list[dict]) -> dict:
+        return {"issue": {"comments": {"nodes": nodes}}}
+
+    async def test_returns_comments(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = self._make_response([_SAMPLE_COMMENT_NODE])
+
+        comments = await client.fetch_issue_comments("issue_1")
+        assert len(comments) == 1
+        assert comments[0].body == "Looks good!"
+
+    async def test_empty_response(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = self._make_response([])
+
+        comments = await client.fetch_issue_comments("issue_1")
+        assert comments == []
+
+    async def test_multiple_comments(self, connected):
+        client, mock_session = connected
+        node2 = {**_SAMPLE_COMMENT_NODE, "id": "comment_2", "body": "LGTM"}
+        mock_session.execute.return_value = self._make_response(
+            [_SAMPLE_COMMENT_NODE, node2]
+        )
+
+        comments = await client.fetch_issue_comments("issue_1")
+        assert len(comments) == 2
+        assert comments[1].body == "LGTM"
+
+    async def test_passes_issue_id_variable(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = self._make_response([])
+
+        await client.fetch_issue_comments("issue_abc")
+        _, kwargs = mock_session.execute.call_args
+        assert kwargs["variable_values"] == {"issueId": "issue_abc"}
+
+    async def test_null_issue_raises_query_error(self, connected):
+        client, mock_session = connected
+        mock_session.execute.return_value = {"issue": None}
+
+        with pytest.raises(LinearQueryError, match="Issue not found"):
+            await client.fetch_issue_comments("bad_id")
+
+    async def test_propagates_auth_error(self, connected):
+        client, mock_session = connected
+        exc = TransportServerError("401 Unauthorized")
+        exc.code = 401
+        mock_session.execute.side_effect = exc
+
+        with pytest.raises(LinearAuthError):
+            await client.fetch_issue_comments("issue_1")
+
+    async def test_propagates_network_error(self, connected):
+        client, mock_session = connected
+        mock_session.execute.side_effect = ConnectionError("timeout")
+
+        with pytest.raises(LinearNetworkError):
+            await client.fetch_issue_comments("issue_1")

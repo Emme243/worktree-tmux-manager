@@ -15,7 +15,7 @@ from gql.transport.exceptions import (
 from gql.transport.httpx import HTTPXAsyncTransport
 
 from modules.core.config import AppConfig
-from modules.linear.models import Ticket, TicketStatus
+from modules.linear.models import Comment, Ticket, TicketStatus
 
 __all__ = [
     "LINEAR_API_URL",
@@ -25,6 +25,7 @@ __all__ = [
     "LinearNetworkError",
     "LinearQueryError",
     "_map_state_type",
+    "_parse_comment",
     "_parse_ticket",
 ]
 
@@ -190,6 +191,40 @@ class LinearClient:
         nodes = data["viewer"]["assignedIssues"]["nodes"]
         return [_parse_ticket(node) for node in nodes]
 
+    _FETCH_ISSUE_COMMENTS_QUERY = """
+    query FetchIssueComments($issueId: String!) {
+      issue(id: $issueId) {
+        comments {
+          nodes {
+            id
+            body
+            createdAt
+            updatedAt
+            user { name }
+          }
+        }
+      }
+    }
+    """
+
+    async def fetch_issue_comments(self, issue_id: str) -> list[Comment]:
+        """Fetch comments for a specific Linear issue.
+
+        Returns comments sorted by creation time (oldest first).
+        All comments are initially marked as unread (``is_read=False``).
+
+        Raises ``LinearQueryError`` if the issue is not found.
+        """
+        data = await self.execute(
+            self._FETCH_ISSUE_COMMENTS_QUERY,
+            variables={"issueId": issue_id},
+        )
+        issue = data.get("issue")
+        if issue is None:
+            raise LinearQueryError("Issue not found")
+        nodes = issue["comments"]["nodes"]
+        return [_parse_comment(node) for node in nodes]
+
 
 def _extract_status_code(exc: TransportServerError) -> int | None:
     """Best-effort extraction of HTTP status code from a transport error."""
@@ -243,4 +278,24 @@ def _parse_ticket(node: dict[str, Any]) -> Ticket:
         assignee=assignee_data["name"] if assignee_data else None,
         updated_at=dt.datetime.fromisoformat(node["updatedAt"]).replace(tzinfo=dt.UTC),
         unread_comment_count=comments_data.get("totalCount", 0),
+    )
+
+
+def _parse_comment(node: dict[str, Any]) -> Comment:
+    """Convert a raw GraphQL comment node into a ``Comment``."""
+    user_data = node.get("user") or {}
+    created = dt.datetime.fromisoformat(node["createdAt"]).replace(tzinfo=dt.UTC)
+    updated_raw = node.get("updatedAt")
+    updated = (
+        dt.datetime.fromisoformat(updated_raw).replace(tzinfo=dt.UTC)
+        if updated_raw
+        else created
+    )
+    return Comment(
+        id=node["id"],
+        body=node.get("body", ""),
+        user_name=user_data.get("name", "Unknown"),
+        created_at=created,
+        updated_at=updated,
+        is_read=False,
     )

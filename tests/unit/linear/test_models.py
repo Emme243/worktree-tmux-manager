@@ -1,4 +1,4 @@
-"""Tests for modules.linear.models — Ticket, TicketStatus, TicketWorkflowState."""
+"""Tests for linear models — Ticket, TicketStatus, TicketWorkflowState, Comment."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from modules.linear.models import Ticket, TicketStatus, TicketWorkflowState
+from modules.linear.models import Comment, Ticket, TicketStatus, TicketWorkflowState
 
 # ---------------------------------------------------------------------------
 # TicketStatus
@@ -171,3 +171,62 @@ class TestTicketDataclassSemantics:
     def test_all_statuses_accepted(self, status: TicketStatus):
         t = Ticket(**{**_REQUIRED, "status": status})
         assert t.status is status
+
+
+# ---------------------------------------------------------------------------
+# Comment — construction and defaults
+# ---------------------------------------------------------------------------
+
+_CREATED_AT = datetime(2026, 3, 10, 8, 0, 0)
+_COMMENT_UPDATED_AT = datetime(2026, 3, 10, 9, 0, 0)
+
+_COMMENT_REQUIRED = dict(
+    id="comment_abc",
+    body="Looks good!",
+    user_name="Bob",
+    created_at=_CREATED_AT,
+    updated_at=_COMMENT_UPDATED_AT,
+)
+
+
+class TestCommentRequiredFields:
+    def test_id_stored(self):
+        c = Comment(**_COMMENT_REQUIRED)
+        assert c.id == "comment_abc"
+
+    def test_body_stored(self):
+        c = Comment(**_COMMENT_REQUIRED)
+        assert c.body == "Looks good!"
+
+    def test_user_name_stored(self):
+        c = Comment(**_COMMENT_REQUIRED)
+        assert c.user_name == "Bob"
+
+    def test_created_at_stored(self):
+        c = Comment(**_COMMENT_REQUIRED)
+        assert c.created_at == _CREATED_AT
+
+    def test_updated_at_stored(self):
+        c = Comment(**_COMMENT_REQUIRED)
+        assert c.updated_at == _COMMENT_UPDATED_AT
+
+
+class TestCommentOptionalFields:
+    def test_is_read_defaults_to_false(self):
+        assert Comment(**_COMMENT_REQUIRED).is_read is False
+
+    def test_is_read_can_be_set_true(self):
+        c = Comment(**_COMMENT_REQUIRED, is_read=True)
+        assert c.is_read is True
+
+
+class TestCommentDataclassSemantics:
+    def test_equal_instances_compare_equal(self):
+        c1 = Comment(**_COMMENT_REQUIRED)
+        c2 = Comment(**_COMMENT_REQUIRED)
+        assert c1 == c2
+
+    def test_different_id_not_equal(self):
+        c1 = Comment(**_COMMENT_REQUIRED)
+        c2 = Comment(**{**_COMMENT_REQUIRED, "id": "other"})
+        assert c1 != c2
