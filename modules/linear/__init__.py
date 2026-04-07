@@ -1,5 +1,6 @@
 """Linear integration package."""
 
+from .cache import CachedLinearClient
 from .client import (
     LinearAuthError,
     LinearClient,
@@ -9,6 +10,7 @@ from .client import (
 )
 
 __all__ = [
+    "CachedLinearClient",
     "LinearAuthError",
     "LinearClient",
     "LinearClientError",
